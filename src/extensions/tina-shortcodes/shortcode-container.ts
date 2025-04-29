@@ -1,14 +1,14 @@
-import type { Pattern } from '../../stringify';
-import type { Construct, Tokenizer, State, Token } from 'micromark-util-types';
-import { ok as assert } from 'uvu/assert';
-import { factorySpace } from 'micromark-factory-space';
-import { markdownLineEnding, markdownSpace } from 'micromark-util-character';
-import { codes } from 'micromark-util-symbol/codes';
-import { constants } from 'micromark-util-symbol/constants';
-import { types } from 'micromark-util-symbol/types';
-import { factoryAttributes } from './factory-attributes';
-import { factoryName } from './factory-name';
-import { findCode } from './shortcode-leaf';
+import { factorySpace } from "micromark-factory-space";
+import { markdownLineEnding, markdownSpace } from "micromark-util-character";
+import { codes } from "micromark-util-symbol/codes";
+import { constants } from "micromark-util-symbol/constants";
+import { types } from "micromark-util-symbol/types";
+import type { Construct, State, Token, Tokenizer } from "micromark-util-types";
+import { ok as assert } from "uvu/assert";
+import type { Pattern } from "../../stringify";
+import { factoryAttributes } from "./factory-attributes";
+import { factoryName } from "./factory-name";
+import { findCode } from "./shortcode-leaf";
 
 export const directiveContainer: (pattern: Pattern) => Construct = (
   pattern
@@ -19,7 +19,8 @@ export const directiveContainer: (pattern: Pattern) => Construct = (
     const tail = self.events[self.events.length - 1];
     const initialSize =
       tail && tail[1].type === types.linePrefix
-        ? tail[2].sliceSerialize(tail[1], true).length
+        ? // @ts-ignore
+          tail[2].sliceSerialize(tail[1], true).length
         : 0;
     let previous: Token;
     let startSequenceIndex = 1;
@@ -39,9 +40,9 @@ export const directiveContainer: (pattern: Pattern) => Construct = (
     const start: State = function (code) {
       const firstCharacter = pattern.start[0];
       if (findCode(firstCharacter) === code) {
-        effects.enter('directiveContainer');
-        effects.enter('directiveContainerFence');
-        effects.enter('directiveContainerSequence');
+        effects.enter("directiveContainer");
+        effects.enter("directiveContainerFence");
+        effects.enter("directiveContainerSequence");
         effects.consume(code);
         return sequenceOpen(code);
       }
@@ -60,7 +61,7 @@ export const directiveContainer: (pattern: Pattern) => Construct = (
         return nok(code);
       }
 
-      effects.exit('directiveContainerSequence');
+      effects.exit("directiveContainerSequence");
       return factorName(code);
     };
     const factorName: State = (code) => {
@@ -72,7 +73,7 @@ export const directiveContainer: (pattern: Pattern) => Construct = (
         effects,
         afterName,
         nok,
-        'directiveContainerName',
+        "directiveContainerName",
         pattern.name || pattern.templateName
       )(code);
     };
@@ -116,13 +117,14 @@ export const directiveContainer: (pattern: Pattern) => Construct = (
     };
 
     const openAfter: State = function (code) {
-      effects.exit('directiveContainerFence');
+      effects.exit("directiveContainerFence");
 
       if (code === codes.eof) {
         return afterOpening(code);
       }
 
       if (markdownLineEnding(code)) {
+        // @ts-ignore
         if (self.interrupt) {
           // return ok(code)
           return nok(code);
@@ -144,7 +146,7 @@ export const directiveContainer: (pattern: Pattern) => Construct = (
         return nok(code);
       }
 
-      effects.enter('directiveContainerContent');
+      effects.enter("directiveContainerContent");
       return lineStart(code);
     };
 
@@ -181,6 +183,7 @@ export const directiveContainer: (pattern: Pattern) => Construct = (
     const contentContinue: State = function (code) {
       if (code === codes.eof) {
         const t = effects.exit(types.chunkDocument);
+        // @ts-ignore
         self.parser.lazy[t.start.line] = false;
         // return after(code)
         return nok(code);
@@ -197,26 +200,28 @@ export const directiveContainer: (pattern: Pattern) => Construct = (
     const nonLazyLineAfter: State = function (code) {
       effects.consume(code);
       const t = effects.exit(types.chunkDocument);
+      // @ts-ignore
       self.parser.lazy[t.start.line] = false;
       return lineStart;
     };
 
     const lineAfter: State = function (code) {
       const t = effects.exit(types.chunkDocument);
+      // @ts-ignore
       self.parser.lazy[t.start.line] = false;
       return after(code);
     };
 
     const after: State = function (code) {
-      effects.exit('directiveContainerContent');
-      effects.exit('directiveContainer');
+      effects.exit("directiveContainerContent");
+      effects.exit("directiveContainer");
       return ok(code);
     };
 
     const tokenizeClosingFence: Tokenizer = function (effects, ok, nok) {
       const closingPrefixAfter: State = function (code) {
-        effects.enter('directiveContainerFence');
-        effects.enter('directiveContainerSequence');
+        effects.enter("directiveContainerFence");
+        effects.enter("directiveContainerSequence");
         return closingSequence(code);
       };
 
@@ -231,7 +236,7 @@ export const directiveContainer: (pattern: Pattern) => Construct = (
         if (closeStartSequenceIndex < pattern.end.length - 1) {
           return nok(code);
         }
-        effects.exit('directiveContainerSequence');
+        effects.exit("directiveContainerSequence");
         return factorySpace(
           effects,
           closingSequenceNameStart,
@@ -283,7 +288,7 @@ export const directiveContainer: (pattern: Pattern) => Construct = (
           return nok;
         }
         if (pattern.end.length - 1 === closeEndSequenceIndex) {
-          effects.exit('directiveContainerFence');
+          effects.exit("directiveContainerFence");
           return ok(code);
         }
         const nextCharacter = pattern.end[closeEndSequenceIndex];
@@ -313,17 +318,17 @@ export const directiveContainer: (pattern: Pattern) => Construct = (
       effects,
       ok,
       nok,
-      'directiveContainerAttributes',
-      'directiveContainerAttributesMarker',
-      'directiveContainerAttribute',
-      'directiveContainerAttributeId',
-      'directiveContainerAttributeClass',
-      'directiveContainerAttributeName',
-      'directiveContainerAttributeInitializerMarker',
-      'directiveContainerAttributeValueLiteral',
-      'directiveContainerAttributeValue',
-      'directiveContainerAttributeValueMarker',
-      'directiveContainerAttributeValueData',
+      "directiveContainerAttributes",
+      "directiveContainerAttributesMarker",
+      "directiveContainerAttribute",
+      "directiveContainerAttributeId",
+      "directiveContainerAttributeClass",
+      "directiveContainerAttributeName",
+      "directiveContainerAttributeInitializerMarker",
+      "directiveContainerAttributeValueLiteral",
+      "directiveContainerAttributeValue",
+      "directiveContainerAttributeValueMarker",
+      "directiveContainerAttributeValueData",
       true
     );
   };
@@ -333,11 +338,12 @@ export const directiveContainer: (pattern: Pattern) => Construct = (
     const self = this;
 
     const lineStart: State = function (code) {
+      // @ts-ignore
       return self.parser.lazy[self.now().line] ? nok(code) : ok(code);
     };
 
     const start: State = function (code) {
-      assert(markdownLineEnding(code), 'expected eol');
+      assert(markdownLineEnding(code), "expected eol");
       effects.enter(types.lineEnding);
       effects.consume(code);
       effects.exit(types.lineEnding);

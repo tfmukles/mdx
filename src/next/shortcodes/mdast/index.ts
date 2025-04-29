@@ -1,39 +1,39 @@
-import { ccount } from 'ccount';
-import { parseEntities } from 'parse-entities';
-import { stringifyPosition } from 'unist-util-stringify-position';
-import { VFileMessage } from 'vfile-message';
-import { stringifyEntitiesLight } from 'stringify-entities';
-import { containerFlow } from 'mdast-util-to-markdown/lib/util/container-flow.js';
-import { containerPhrasing } from 'mdast-util-to-markdown/lib/util/container-phrasing.js';
-import { indentLines } from 'mdast-util-to-markdown/lib/util/indent-lines.js';
-import { track } from 'mdast-util-to-markdown/lib/util/track.js';
-import { Pattern } from '../lib/syntax';
+import { ccount } from "ccount";
 import type {
   Handle as FromMarkdownHandle,
-  Token,
   OnEnterError,
   OnExitError,
-} from 'mdast-util-from-markdown';
+  Token,
+} from "mdast-util-from-markdown";
 import type {
-  Handle as ToMarkdownHandle,
-  Map as ToMarkdownMap,
-  Options,
-} from 'mdast-util-to-markdown';
-import type {
-  MdxJsxAttributeValueExpression,
   MdxJsxAttribute,
+  MdxJsxAttributeValueExpression,
   MdxJsxExpressionAttribute,
   MdxJsxFlowElement,
   MdxJsxTextElement,
-} from 'mdast-util-mdx-jsx';
+} from "mdast-util-mdx-jsx";
+import type {
+  Options,
+  Handle as ToMarkdownHandle,
+  Map as ToMarkdownMap,
+} from "mdast-util-to-markdown";
+import { containerFlow } from "mdast-util-to-markdown/lib/util/container-flow.js";
+import { containerPhrasing } from "mdast-util-to-markdown/lib/util/container-phrasing.js";
+import { indentLines } from "mdast-util-to-markdown/lib/util/indent-lines.js";
+import { track } from "mdast-util-to-markdown/lib/util/track.js";
+import { parseEntities } from "parse-entities";
+import { stringifyEntitiesLight } from "stringify-entities";
+import { stringifyPosition } from "unist-util-stringify-position";
+import { VFileMessage } from "vfile-message";
+import { Pattern } from "../lib/syntax";
 
 type Tag = {
   name: string | undefined;
   attributes: Array<MdxJsxAttribute | MdxJsxExpressionAttribute>;
   close: boolean;
   selfClosing: boolean;
-  start: Token['start'];
-  end: Token['end'];
+  start: Token["start"];
+  end: Token["end"];
   shouldFallback?: boolean;
 };
 
@@ -56,14 +56,14 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
       start: token.start,
       end: token.end,
     };
-    if (!this.getData('mdxJsxTagStack')) this.setData('mdxJsxTagStack', []);
-    this.setData('mdxJsxTag', tag);
+    if (!this.getData("mdxJsxTagStack")) this.setData("mdxJsxTagStack", []);
+    this.setData("mdxJsxTag", tag);
     this.buffer();
   };
 
   const enterMdxJsxTagClosingMarker: FromMarkdownHandle = function (token) {
-    const stack: Array<Tag> | undefined = this.getData('mdxJsxTagStack');
-    const tag: Tag | undefined = this.getData('mdxJsxTag');
+    const stack: Array<Tag> | undefined = this.getData("mdxJsxTagStack");
+    const tag: Tag | undefined = this.getData("mdxJsxTag");
 
     if (stack?.length === 0) {
       // Indicate that when we're exiting this tag, we should transform
@@ -80,7 +80,7 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   };
 
   const enterMdxJsxTagAnyAttribute: FromMarkdownHandle = function (token) {
-    const tag: Tag | undefined = this.getData('mdxJsxTag');
+    const tag: Tag | undefined = this.getData("mdxJsxTag");
 
     // We're still treating this token as invalid, but instead
     // of erroring, we'll tokenize it as a text value
@@ -94,60 +94,60 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   };
 
   const enterMdxJsxTagSelfClosingMarker: FromMarkdownHandle = function (token) {
-    const tag: Tag | undefined = this.getData('mdxJsxTag');
+    const tag: Tag | undefined = this.getData("mdxJsxTag");
 
     if (tag?.close) {
       throw new VFileMessage(
-        'Unexpected self-closing slash `/` in closing tag, expected the end of the tag',
+        "Unexpected self-closing slash `/` in closing tag, expected the end of the tag",
         { start: token.start, end: token.end },
-        'mdast-util-mdx-jsx:unexpected-self-closing-slash'
+        "mdast-util-mdx-jsx:unexpected-self-closing-slash"
       );
     }
   };
 
   const exitMdxJsxTagClosingMarker: FromMarkdownHandle = function () {
-    const tag: Tag | undefined = this.getData('mdxJsxTag');
+    const tag: Tag | undefined = this.getData("mdxJsxTag");
     if (tag) {
       tag.close = true;
     }
   };
 
   const exitMdxJsxTagNamePrimary: FromMarkdownHandle = function (token) {
-    const tag: Tag | undefined = this.getData('mdxJsxTag');
+    const tag: Tag | undefined = this.getData("mdxJsxTag");
     if (tag) {
       tag.name = this.sliceSerialize(token);
     }
   };
 
   const exitMdxJsxTagNameMember: FromMarkdownHandle = function (token) {
-    const tag: Tag | undefined = this.getData('mdxJsxTag');
+    const tag: Tag | undefined = this.getData("mdxJsxTag");
     if (tag) {
-      tag.name += '.' + this.sliceSerialize(token);
+      tag.name += "." + this.sliceSerialize(token);
     }
   };
 
   const exitMdxJsxTagNameLocal: FromMarkdownHandle = function (token) {
-    const tag: Tag | undefined = this.getData('mdxJsxTag');
+    const tag: Tag | undefined = this.getData("mdxJsxTag");
     if (tag) {
-      tag.name += ':' + this.sliceSerialize(token);
+      tag.name += ":" + this.sliceSerialize(token);
     }
   };
 
   const enterMdxJsxTagAttribute: FromMarkdownHandle = function (token) {
-    const tag: Tag | undefined = this.getData('mdxJsxTag');
+    const tag: Tag | undefined = this.getData("mdxJsxTag");
     enterMdxJsxTagAnyAttribute.call(this, token);
     if (tag) {
-      tag.attributes.push({ type: 'mdxJsxAttribute', name: '', value: null });
+      tag.attributes.push({ type: "mdxJsxAttribute", name: "", value: null });
     }
   };
 
   const enterMdxJsxTagExpressionAttribute: FromMarkdownHandle = function (
     token
   ) {
-    const tag: Tag | undefined = this.getData('mdxJsxTag');
+    const tag: Tag | undefined = this.getData("mdxJsxTag");
     enterMdxJsxTagAnyAttribute.call(this, token);
     if (tag) {
-      tag.attributes.push({ type: 'mdxJsxExpressionAttribute', value: '' });
+      tag.attributes.push({ type: "mdxJsxExpressionAttribute", value: "" });
     }
     this.buffer();
   };
@@ -155,13 +155,12 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   const exitMdxJsxTagExpressionAttribute: FromMarkdownHandle = function (
     token
   ) {
-    const tag: Tag | undefined = this.getData('mdxJsxTag');
+    const tag: Tag | undefined = this.getData("mdxJsxTag");
     if (tag) {
       const tail: MdxJsxExpressionAttribute | MdxJsxAttribute | undefined =
         tag.attributes[tag.attributes.length - 1];
 
       /** @type {Program | undefined} */
-      // @ts-expect-error: custom.
       const estree = token.estree;
 
       if (tail) {
@@ -177,7 +176,7 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   const exitMdxJsxTagAttributeNamePrimary: FromMarkdownHandle = function (
     token
   ) {
-    const tag: Tag | undefined = this.getData('mdxJsxTag');
+    const tag: Tag | undefined = this.getData("mdxJsxTag");
     if (tag) {
       const node:
         | (MdxJsxExpressionAttribute & { name?: string })
@@ -190,20 +189,20 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   };
 
   const exitMdxJsxTagAttributeNameLocal: FromMarkdownHandle = function (token) {
-    const tag: Tag | undefined = this.getData('mdxJsxTag');
+    const tag: Tag | undefined = this.getData("mdxJsxTag");
     if (tag) {
       const node:
         | (MdxJsxExpressionAttribute & { name?: string })
         | (MdxJsxAttribute & { name?: string })
         | undefined = tag.attributes[tag.attributes.length - 1];
       if (node) {
-        node.name += ':' + this.sliceSerialize(token);
+        node.name += ":" + this.sliceSerialize(token);
       }
     }
   };
 
   const exitMdxJsxTagAttributeValueLiteral: FromMarkdownHandle = function () {
-    const tag: Tag | undefined = this.getData('mdxJsxTag');
+    const tag: Tag | undefined = this.getData("mdxJsxTag");
     if (tag) {
       const attribute:
         | (MdxJsxExpressionAttribute & { name?: string })
@@ -211,8 +210,8 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
         | undefined = tag.attributes[tag.attributes.length - 1];
       // Support for unkeyed attributes
       if (attribute) {
-        if (attribute.name === '') {
-          attribute.name = '_value';
+        if (attribute.name === "") {
+          attribute.name = "_value";
         }
         attribute.value = parseEntities(this.resume(), {
           nonTerminated: false,
@@ -228,7 +227,7 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   const exitMdxJsxTagAttributeValueExpression: FromMarkdownHandle = function (
     token
   ) {
-    const tag: Tag | undefined = this.getData('mdxJsxTag');
+    const tag: Tag | undefined = this.getData("mdxJsxTag");
     if (!tag) return;
     const tail:
       | (MdxJsxExpressionAttribute & { name?: string })
@@ -236,11 +235,10 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
       | undefined = tag.attributes[tag.attributes.length - 1];
 
     const node: MdxJsxAttributeValueExpression = {
-      type: 'mdxJsxAttributeValueExpression',
+      type: "mdxJsxAttributeValueExpression",
       value: this.resume(),
     };
     /** @type {Program | undefined} */
-    // @ts-expect-error: custom.
     const estree = token.estree;
 
     if (estree) {
@@ -253,7 +251,7 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   };
 
   const exitMdxJsxTagSelfClosingMarker: FromMarkdownHandle = function () {
-    const tag: Tag | undefined = this.getData('mdxJsxTag');
+    const tag: Tag | undefined = this.getData("mdxJsxTag");
 
     if (tag) {
       tag.selfClosing = true;
@@ -265,8 +263,8 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
    * @type {FromMarkdownHandle}
    */
   const exitMdxJsxTag: FromMarkdownHandle = function (token) {
-    const tag: Tag | undefined = this.getData('mdxJsxTag');
-    const stack: Tag[] | undefined = this.getData('mdxJsxTagStack');
+    const tag: Tag | undefined = this.getData("mdxJsxTag");
+    const stack: Tag[] | undefined = this.getData("mdxJsxTagStack");
     if (!stack) return;
     const tail = stack[stack.length - 1];
 
@@ -274,15 +272,15 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
 
     if (tail && tag.close && tail.name !== tag.name) {
       throw new VFileMessage(
-        'Unexpected closing tag `' +
+        "Unexpected closing tag `" +
           serializeAbbreviatedTag(tag) +
-          '`, expected corresponding closing tag for `' +
+          "`, expected corresponding closing tag for `" +
           serializeAbbreviatedTag(tail) +
-          '` (' +
+          "` (" +
           stringifyPosition(tail) +
-          ')',
+          ")",
         { start: token.start, end: token.end },
-        'mdast-util-mdx-jsx:end-tag-mismatch'
+        "mdast-util-mdx-jsx:end-tag-mismatch"
       );
     }
 
@@ -297,9 +295,9 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
       this.enter(
         {
           type:
-            token.type === 'mdxJsxTextTag'
-              ? 'mdxJsxTextElement'
-              : 'mdxJsxFlowElement',
+            token.type === "mdxJsxTextTag"
+              ? "mdxJsxTextElement"
+              : "mdxJsxFlowElement",
           name: tagName || null,
           attributes: tag.attributes,
           children: [],
@@ -320,11 +318,11 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
       // want to basically unwind it and treat it as a
       // plain string instead.
       if (tag.shouldFallback) {
-        if (token.type === 'mdxJsxFlowTag') {
+        if (token.type === "mdxJsxFlowTag") {
           this.enter(
             {
-              type: 'paragraph',
-              children: [{ type: 'text', value: this.sliceSerialize(token) }],
+              type: "paragraph",
+              children: [{ type: "text", value: this.sliceSerialize(token) }],
             },
             token
           );
@@ -332,7 +330,7 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
         } else {
           this.enter(
             {
-              type: 'text',
+              type: "text",
               value: this.sliceSerialize(token),
             },
             token
@@ -348,27 +346,27 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   };
 
   const onErrorRightIsTag: OnEnterError = function (closing, open) {
-    const tag: Tag | undefined = this.getData('mdxJsxTag');
+    const tag: Tag | undefined = this.getData("mdxJsxTag");
     if (!tag) return;
-    const place = closing ? ' before the end of `' + closing.type + '`' : '';
+    const place = closing ? " before the end of `" + closing.type + "`" : "";
     const position = closing
       ? { start: closing.start, end: closing.end }
       : undefined;
 
     throw new VFileMessage(
-      'Expected a closing tag for `' +
+      "Expected a closing tag for `" +
         serializeAbbreviatedTag(tag) +
-        '` (' +
+        "` (" +
         stringifyPosition({ start: open.start, end: open.end }) +
-        ')' +
+        ")" +
         place,
       position,
-      'mdast-util-mdx-jsx:end-tag-mismatch'
+      "mdast-util-mdx-jsx:end-tag-mismatch"
     );
   };
 
   const onErrorLeftIsTag: OnExitError = function (this, a, b) {
-    const tag = /** @type {Tag} */ this.getData('mdxJsxTag');
+    const tag = /** @type {Tag} */ this.getData("mdxJsxTag");
     // this.enter(
     //   {
     //     type: 'text',
@@ -400,11 +398,11 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
    * `self-closing` is not supported, because we don’t need it yet.
    */
   function serializeAbbreviatedTag(tag: Tag) {
-    return '<' + (tag.close ? '/' : '') + (tag.name || '') + '>';
+    return "<" + (tag.close ? "/" : "") + (tag.name || "") + ">";
   }
 
   return {
-    canContainEols: ['mdxJsxTextElement'],
+    canContainEols: ["mdxJsxTextElement"],
     enter: {
       mdxJsxFlowTag: enterMdxJsxTag,
       mdxJsxFlowTagClosingMarker: enterMdxJsxTagClosingMarker,
@@ -484,9 +482,9 @@ export const mdxJsxToMarkdown = function (
 
   if (quote !== '"' && quote !== "'") {
     throw new Error(
-      'Cannot serialize attribute values with `' +
+      "Cannot serialize attribute values with `" +
         quote +
-        '` for `options.quote`, expected `"`, or `\'`'
+        "` for `options.quote`, expected `\"`, or `'`"
     );
   }
 
@@ -499,7 +497,7 @@ export const mdxJsxToMarkdown = function (
     const pattern = patterns.find((p) => p.templateName === node.name);
     if (!pattern) {
       // FIXME
-      return '';
+      return "";
     }
     const patternName = pattern.name || pattern?.templateName;
     const tracker = track(safeOptions);
@@ -508,12 +506,12 @@ export const mdxJsxToMarkdown = function (
     let index = -1;
     /** @type {Array<string>} */
     const serializedAttributes = [];
-    let value = tracker.move(pattern.start + ' ' + (patternName || ''));
+    let value = tracker.move(pattern.start + " " + (patternName || ""));
 
     // None.
     if (node.attributes && node.attributes.length > 0) {
       if (!node.name) {
-        throw new Error('Cannot serialize fragment w/ attributes');
+        throw new Error("Cannot serialize fragment w/ attributes");
       }
 
       while (++index < node.attributes.length) {
@@ -521,22 +519,22 @@ export const mdxJsxToMarkdown = function (
         /** @type {string} */
         let result;
 
-        if (attribute?.type === 'mdxJsxExpressionAttribute') {
-          result = '{' + (attribute.value || '') + '}';
+        if (attribute?.type === "mdxJsxExpressionAttribute") {
+          result = "{" + (attribute.value || "") + "}";
         } else {
           if (!attribute?.name) {
-            throw new Error('Cannot serialize attribute w/o name');
+            throw new Error("Cannot serialize attribute w/o name");
           }
 
           const value = attribute.value;
           const left = attribute.name;
           /** @type {string} */
-          let right = '';
+          let right = "";
 
           if (value === undefined || value === null) {
             // Empty.
-          } else if (typeof value === 'object') {
-            right = '{' + (value.value || '') + '}';
+          } else if (typeof value === "object") {
+            right = "{" + (value.value || "") + "}";
           } else {
             // If the alternative is less common than `quote`, switch.
             const appliedQuote =
@@ -549,10 +547,10 @@ export const mdxJsxToMarkdown = function (
               appliedQuote;
           }
 
-          if (left === '_value') {
+          if (left === "_value") {
             result = right;
           } else {
-            result = left + (right ? '=' : '') + right;
+            result = left + (right ? "=" : "") + right;
           }
         }
 
@@ -561,11 +559,11 @@ export const mdxJsxToMarkdown = function (
     }
 
     let attributesOnTheirOwnLine = false;
-    const attributesOnOneLine = serializedAttributes.join(' ');
+    const attributesOnOneLine = serializedAttributes.join(" ");
 
     if (
       // Block:
-      node.type === 'mdxJsxFlowElement' &&
+      node.type === "mdxJsxFlowElement" &&
       // Including a line ending (expressions).
       (/\r?\n|\r/.test(attributesOnOneLine) ||
         // Current position (including `<tag`).
@@ -582,45 +580,45 @@ export const mdxJsxToMarkdown = function (
 
     if (attributesOnTheirOwnLine) {
       value += tracker.move(
-        '\n' + indentLines(serializedAttributes.join('\n'), map)
+        "\n" + indentLines(serializedAttributes.join("\n"), map)
       );
     } else if (attributesOnOneLine) {
-      value += tracker.move(' ' + attributesOnOneLine);
+      value += tracker.move(" " + attributesOnOneLine);
     }
 
     if (attributesOnTheirOwnLine) {
-      value += tracker.move('\n');
+      value += tracker.move("\n");
     }
 
     if (selfClosing) {
       value += tracker.move(
-        tightSelfClosing || attributesOnTheirOwnLine ? '' : ''
+        tightSelfClosing || attributesOnTheirOwnLine ? "" : ""
       );
     }
 
-    value += tracker.move(' ' + pattern.end);
+    value += tracker.move(" " + pattern.end);
 
     if (node.children) {
-      if (node.type === 'mdxJsxFlowElement') {
+      if (node.type === "mdxJsxFlowElement") {
         const emptyChildren =
           node.children.length === 1 &&
-          node.children[0]?.type === 'paragraph' &&
-          node.children[0].children[0]?.type === 'text' &&
-          node.children[0].children[0].value === '';
+          node.children[0]?.type === "paragraph" &&
+          node.children[0].children[0]?.type === "text" &&
+          node.children[0].children[0].value === "";
         if (!emptyChildren) {
           tracker.shift(2);
-          value += tracker.move('\n');
+          value += tracker.move("\n");
           value += tracker.move(
             containerFlow(node, context, tracker.current())
           );
-          value += tracker.move('\n');
+          value += tracker.move("\n");
         }
       } else {
         value += tracker.move(
           containerPhrasing(node, context, {
             ...tracker.current(),
-            before: '<',
-            after: '>',
+            before: "<",
+            after: ">",
           })
         );
       }
@@ -628,7 +626,7 @@ export const mdxJsxToMarkdown = function (
 
     if (!selfClosing) {
       const closingTag =
-        pattern.start + ' /' + (patternName || ' ') + ' ' + pattern.end;
+        pattern.start + " /" + (patternName || " ") + " " + pattern.end;
       value += tracker.move(closingTag);
     }
 
@@ -637,11 +635,11 @@ export const mdxJsxToMarkdown = function (
   };
 
   const map: ToMarkdownMap = function (line, _, blank) {
-    return (blank ? '' : '  ') + line;
+    return (blank ? "" : "  ") + line;
   };
 
   const peekElement: ToMarkdownHandle = function () {
-    return '<';
+    return "<";
   };
 
   // @ts-ignore
@@ -654,8 +652,8 @@ export const mdxJsxToMarkdown = function (
       mdxJsxTextElement: mdxElement,
     },
     unsafe: [
-      { character: '<', inConstruct: ['phrasing' as const] },
-      { atBreak: true, character: '<' },
+      { character: "<", inConstruct: ["phrasing" as const] },
+      { atBreak: true, character: "<" },
     ],
     // Always generate fenced code (never indented code).
     fences: true,
