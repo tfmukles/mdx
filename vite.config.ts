@@ -5,7 +5,7 @@ export default defineConfig({
   build: {
     lib: {
       entry: "src/index.ts",
-      name: "sitepins-mdx-2",
+      name: "sitepins-mdx",
       fileName: (format) => {
         if (format === "es") return "index.mjs";
         if (format === "umd") return "index.browser.mjs";
@@ -43,6 +43,8 @@ export default defineConfig({
         "unist-util-visit",
         "uvu",
         "vfile-message",
+        "react",
+        "react-dom",
       ],
     },
     sourcemap: true,
@@ -51,6 +53,7 @@ export default defineConfig({
   plugins: [
     dts({
       insertTypesEntry: true,
+      include: ["src"],
     }),
   ],
   assetsInclude: ["**/*.md"],

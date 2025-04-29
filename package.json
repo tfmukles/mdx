@@ -1,29 +1,32 @@
 {
-  "name": "sitepins-mdx-2",
+  "name": "sitepins-mdx",
   "version": "1.0.0",
-  "typings": "dist/index.d.ts",
-  "main": "dist/index.js",
-  "browser": "dist/index.browser.mjs",
-  "module": "dist/index.mjs",
+  "type": "module",
+  "typings": "./dist/index.d.ts",
+  "main": "index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "sideEffects": false,
   "files": [
-    "package.json",
-    "dist"
+    "dist",
+    "index.js"
   ],
   "exports": {
     ".": {
-      "browser": "./dist/index.browser.mjs",
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
+      "require": "./index.js",
+      "default": "./index.js"
     }
   },
-  "license": "Apache-2.0",
   "scripts": {
     "types": "tsc",
     "build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
-    "dev": "vite build --watch"
+    "dev": "vite build --watch",
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@tinacms/schema-tools": "^1.4.8",
@@ -43,7 +46,7 @@
     "micromark-factory-whitespace": "1.0.0",
     "micromark-util-character": "1.1.0",
     "micromark-util-symbol": "1.0.1",
-    "micromark-util-types": "^1.0.1",
+    "micromark-util-types": "1.0.2",
     "parse-entities": "4.0.1",
     "prettier": "^2.8.8",
     "remark": "14.0.2",
@@ -65,9 +68,22 @@
     "@types/prettier": "^2.7.3",
     "@types/unist": "^2.0.11",
     "jest-file-snapshot": "^0.5.0",
+    "tsup": "^8.4.0",
     "typescript": "^5.7.3",
     "vite": "^4.5.9",
     "vite-plugin-dts": "^3.7.2",
     "vitest": "^0.32.4"
+  },
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "react": "^16.0.0 || ^17.0.0 || ^18.0.0"
+  },
+  "peerDependencyMeta": {
+    "react": {
+      "optional": true
+    }
   }
 }
