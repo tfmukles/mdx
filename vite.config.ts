@@ -45,6 +45,8 @@ export default defineConfig({
         "vfile-message",
       ],
     },
+    sourcemap: true,
+    minify: false,
   },
   plugins: [
     dts({

@@ -22,7 +22,8 @@
     "build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "dev": "vite build --watch"
   },
   "dependencies": {
     "@tinacms/schema-tools": "^1.4.8",
