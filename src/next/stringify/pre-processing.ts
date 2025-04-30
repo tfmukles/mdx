@@ -1,5 +1,5 @@
-import type * as Plate from "@/core/parse/plate";
-import type { RootElement } from "@/core/parse/plate";
+import type * as Plate from "@/core/parser/plate";
+import type { RootElement } from "@/core/parser/plate";
 import type { RichTextField } from "@/types";
 import type * as Md from "mdast";
 import { stringifyProps } from "./acorn";

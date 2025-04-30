@@ -1,5 +1,5 @@
 import { RichTextField } from "@/types";
-import type * as Plate from "../../core/parse/plate";
+import type * as Plate from "../../core/parser/plate";
 import { preProcess } from "./pre-processing";
 import { toSitepinsMarkdown } from "./to-markdown";
 

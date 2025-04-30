@@ -10,7 +10,7 @@ import { Handlers, toMarkdown } from "mdast-util-to-markdown";
 import { text } from "mdast-util-to-markdown/lib/handle/text";
 import { stringifyMDX as stringifyMDXNext } from "../../next";
 import { directiveToMarkdown } from "../extensions/sitepins-shortcodes/to-markdown";
-import type * as Plate from "../parse/plate";
+import type * as Plate from "../parser/plate";
 import { stringifyProps } from "./acorn";
 import { eat } from "./marks";
 import { stringifyShortcode } from "./stringifyShortcode";

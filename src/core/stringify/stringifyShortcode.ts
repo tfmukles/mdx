@@ -1,5 +1,5 @@
 import { RichTextTemplate } from "@/types";
-import { replaceAll } from "../parse";
+import { replaceAll } from "../parser";
 
 export function stringifyShortcode(
   preprocessedString: string,
