@@ -232,7 +232,7 @@ export function stringifyProps(
               val = stringValue
                 .trim()
                 .split("\n")
-                .map((str) => `  ${str.trim()}`)
+                .map((str: string) => `  ${str.trim()}`)
                 .join(joiner);
             }
           }

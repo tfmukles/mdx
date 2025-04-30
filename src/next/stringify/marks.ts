@@ -1,7 +1,7 @@
 import type { RichTextField } from "@/types";
 import type * as Md from "mdast";
-import type * as Plate from "../../parse/plate";
-import { getMarks } from "../../stringify";
+import type * as Plate from "../../core/parse/plate";
+import { getMarks } from "../../core/stringify";
 import { stringifyPropsInline } from "./acorn";
 
 const matches = (a: string[], b: string[]) => {
@@ -96,7 +96,7 @@ const inlineElementExceptLink = (
       };
     }
     default:
-      // @ts-expect-error type is 'never'
+      // @ts-expect-error
       if (!content.type && typeof content.text === "string") {
         return text(content);
       }

@@ -7,7 +7,7 @@ import type { MdxJsxAttribute } from "mdast-util-mdx-jsx";
 // @ts-ignore TODO: Fix this
 import parser from "prettier/esm/parser-espree.mjs";
 import { stringifyMDX } from ".";
-import * as Plate from "../../parse/plate";
+import * as Plate from "../../core/parse/plate";
 import { rootElement } from "./pre-processing";
 
 export const stringifyPropsInline = (

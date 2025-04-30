@@ -1,20 +1,20 @@
-import { it, expect } from 'vitest';
-import { stringifyMDX } from '../../../stringify';
-import { field } from './field';
-import * as util from '../util';
-import { RootElement } from '../../../parse/plate';
+import { RootElement } from "@/core/parse/plate";
+import { stringifyMDX } from "@/core/stringify";
+import { expect, it } from "vitest";
+import * as util from "../util";
+import { field } from "./field";
 
-it('matches input', () => {
+it("matches input", () => {
   const tree: RootElement = {
-    type: 'root',
+    type: "root",
     children: [
       {
-        type: 'mdxJsxFlowElement',
-        name: 'Cta',
+        type: "mdxJsxFlowElement",
+        name: "Cta",
         children: [
           {
-            type: 'text',
-            text: '',
+            type: "text",
+            text: "",
           },
         ],
         props: {

@@ -1,13 +1,8 @@
-/**
+import { describe, expect, it } from "vitest";
+import { trimFragments } from "./acorn";
 
-
-
-*/
-import { it, expect, describe } from 'vitest';
-import { trimFragments } from './acorn';
-
-describe('trimFragments', () => {
-  it('initial fragment on a new line', () => {
+describe("trimFragments", () => {
+  it("initial fragment on a new line", () => {
     expect(
       trimFragments(`
   <>
@@ -16,14 +11,14 @@ describe('trimFragments', () => {
     `)
     ).toMatchInlineSnapshot('"    foo bar baz left"');
   });
-  it('fragment with no newlines', () => {
+  it("fragment with no newlines", () => {
     expect(
       trimFragments(`<>
     foo bar baz left
   </>`)
     ).toMatchInlineSnapshot('"    foo bar baz left"');
   });
-  it('fragment with extra fragments inside', () => {
+  it("fragment with extra fragments inside", () => {
     expect(
       trimFragments(`<>
       Ok
@@ -38,7 +33,7 @@ describe('trimFragments', () => {
           </>"
     `);
   });
-  it('preserves newlines', () => {
+  it("preserves newlines", () => {
     expect(
       trimFragments(`<>
       Ok

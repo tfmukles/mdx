@@ -1,7 +1,7 @@
-import { parseMDX } from "./parse";
-import { stringifyMDX } from "./stringify";
+import { parseMDX } from "./core/parse";
+import { stringifyMDX } from "./core/stringify";
 
 // MDX types
-export * from "./parse/plate";
+export * from "./core/parse/plate";
 
 export { parseMDX, stringifyMDX };
