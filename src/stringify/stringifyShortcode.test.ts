@@ -1,28 +1,23 @@
-/**
+import { describe, expect, it } from "vitest";
+import { stringifyShortcode } from "./stringifyShortcode";
 
-
-
-*/
-import { it, expect, describe } from 'vitest';
-import { stringifyShortcode } from './stringifyShortcode';
-
-describe('stringifyShortcode', () => {
-  describe('with keyed field', () => {
-    it('parses attributes', () => {
+describe("stringifyShortcode", () => {
+  describe("with keyed field", () => {
+    it("parses attributes", () => {
       const result = stringifyShortcode(
         '<signature foo="bar123"></signature>',
         {
-          name: 'signature',
-          label: 'Signature',
+          name: "signature",
+          label: "Signature",
           match: {
-            start: '{{<',
-            end: '>}}',
+            start: "{{<",
+            end: ">}}",
           },
           fields: [
             {
-              name: 'foo',
-              label: 'foo label',
-              type: 'string',
+              name: "foo",
+              label: "foo label",
+              type: "string",
             },
           ],
         }
@@ -31,42 +26,42 @@ describe('stringifyShortcode', () => {
     });
   });
 
-  describe('with unkeyed attributes', () => {
-    describe('and no text value set', () => {
-      it('excludes quotes', () => {
-        const result = stringifyShortcode('<signature></signature>', {
-          name: 'signature',
-          label: 'Signature',
+  describe("with unkeyed attributes", () => {
+    describe("and no text value set", () => {
+      it("excludes quotes", () => {
+        const result = stringifyShortcode("<signature></signature>", {
+          name: "signature",
+          label: "Signature",
           match: {
-            start: '{{<',
-            end: '>}}',
+            start: "{{<",
+            end: ">}}",
           },
           fields: [
             {
-              name: '_value',
-              label: 'Value',
-              type: 'string',
+              name: "_value",
+              label: "Value",
+              type: "string",
             },
           ],
         });
-        expect(result).toEqual('{{< signature  >}}');
+        expect(result).toEqual("{{< signature  >}}");
       });
     });
-    it('parses attributes', () => {
+    it("parses attributes", () => {
       const result = stringifyShortcode(
         '<signature _value="bar123"></signature>',
         {
-          name: 'signature',
-          label: 'Signature',
+          name: "signature",
+          label: "Signature",
           match: {
-            start: '{{<',
-            end: '>}}',
+            start: "{{<",
+            end: ">}}",
           },
           fields: [
             {
-              name: '_value',
-              label: 'Value',
-              type: 'string',
+              name: "_value",
+              label: "Value",
+              type: "string",
             },
           ],
         }
@@ -75,25 +70,25 @@ describe('stringifyShortcode', () => {
     });
   });
 
-  describe('with children', () => {
-    it('parses children field', () => {
-      const result = stringifyShortcode('<signature># FOO\n##Bar</signature>', {
-        name: 'signature',
-        label: 'Signature',
+  describe("with children", () => {
+    it("parses children field", () => {
+      const result = stringifyShortcode("<signature># FOO\n##Bar</signature>", {
+        name: "signature",
+        label: "Signature",
         match: {
-          start: '{{<',
-          end: '>}}',
+          start: "{{<",
+          end: ">}}",
         },
         fields: [
           {
-            name: 'children',
-            label: 'children',
-            type: 'string',
+            name: "children",
+            label: "children",
+            type: "string",
           },
         ],
       });
       expect(result).toEqual(
-        '{{< signature  >}}\n# FOO\n##Bar\n{{< /signature >}}'
+        "{{< signature  >}}\n# FOO\n##Bar\n{{< /signature >}}"
       );
     });
   });

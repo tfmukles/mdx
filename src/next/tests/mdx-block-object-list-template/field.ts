@@ -1,43 +1,43 @@
-import { RichTextField } from '@tinacms/schema-tools';
+import { RichTextField } from "@/types";
 
 export const field: RichTextField = {
-  name: 'body',
-  type: 'rich-text',
-  parser: { type: 'mdx' },
+  name: "body",
+  type: "rich-text",
+  parser: { type: "mdx" },
   templates: [
     {
-      name: 'Action',
-      label: 'Action',
+      name: "Action",
+      label: "Action",
       fields: [
         {
-          type: 'object',
-          name: 'action',
+          type: "object",
+          name: "action",
           templates: [
             {
-              label: 'Popup',
-              name: 'popup',
+              label: "Popup",
+              name: "popup",
               fields: [
                 {
-                  type: 'string',
-                  name: 'title',
+                  type: "string",
+                  name: "title",
                 },
                 {
-                  type: 'string',
-                  name: 'descrption',
+                  type: "string",
+                  name: "descrption",
                 },
               ],
             },
             {
-              label: 'Link',
-              name: 'link',
+              label: "Link",
+              name: "link",
               fields: [
                 {
-                  type: 'string',
-                  name: 'title',
+                  type: "string",
+                  name: "title",
                 },
                 {
-                  type: 'string',
-                  name: 'url',
+                  type: "string",
+                  name: "url",
                 },
               ],
             },

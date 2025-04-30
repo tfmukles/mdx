@@ -1,13 +1,13 @@
-import type { RichTextField, RichTextTemplate } from '@tinacms/schema-tools';
-import type { Pattern } from './shortcodes';
+import type { RichTextField, RichTextTemplate } from "@/types";
+import type { Pattern } from "./shortcodes";
 
 export const getFieldPatterns = (field: RichTextField) => {
   const patterns: Pattern[] = [];
   const templates: RichTextTemplate[] = [];
   hoistAllTemplates(field, templates);
   templates?.forEach((template) => {
-    if (typeof template === 'string') {
-      throw new Error('Global templates not supported');
+    if (typeof template === "string") {
+      throw new Error("Global templates not supported");
     }
     if (template.match) {
       patterns.push({
@@ -15,8 +15,8 @@ export const getFieldPatterns = (field: RichTextField) => {
         end: template.match.end,
         name: template.match.name || template.name,
         templateName: template.name,
-        type: template.inline ? 'inline' : 'flow',
-        leaf: !template.fields.some((f) => f.name === 'children'),
+        type: template.inline ? "inline" : "flow",
+        leaf: !template.fields.some((f) => f.name === "children"),
       });
     }
   });
@@ -33,12 +33,12 @@ const hoistAllTemplates = (
   templates: RichTextTemplate[] = []
 ) => {
   field.templates?.forEach((template) => {
-    if (typeof template === 'string') {
-      throw new Error('Global templates not supported');
+    if (typeof template === "string") {
+      throw new Error("Global templates not supported");
     }
     templates.push(template);
     template.fields.forEach((field) => {
-      if (field.type === 'rich-text') {
+      if (field.type === "rich-text") {
         hoistAllTemplates(field, templates);
       }
     });

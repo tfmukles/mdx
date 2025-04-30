@@ -1,46 +1,46 @@
-import { RichTextField } from '@tinacms/schema-tools';
+import { RichTextField } from "@/types";
 
 export const field: RichTextField = {
-  name: 'body',
-  type: 'rich-text',
-  parser: { type: 'markdown' },
+  name: "body",
+  type: "rich-text",
+  parser: { type: "markdown" },
   templates: [
     {
-      name: 'featurePanel',
-      label: 'Feature Panel',
+      name: "featurePanel",
+      label: "Feature Panel",
       match: {
-        start: '{{%',
-        end: '%}}',
-        name: 'feature-panel',
+        start: "{{%",
+        end: "%}}",
+        name: "feature-panel",
       },
       fields: [
         {
-          name: '_value',
+          name: "_value",
           required: true,
           isTitle: true,
-          label: 'Value',
-          type: 'string',
+          label: "Value",
+          type: "string",
         },
       ],
     },
     {
-      name: 'pullQuote',
-      label: 'Pull Quote',
+      name: "pullQuote",
+      label: "Pull Quote",
       match: {
-        start: '{{%',
-        name: 'pull-quote',
-        end: '%}}',
+        start: "{{%",
+        name: "pull-quote",
+        end: "%}}",
       },
       fields: [
         {
-          name: 'foo',
-          label: 'foo label',
-          type: 'string',
+          name: "foo",
+          label: "foo label",
+          type: "string",
         },
         {
-          name: 'children',
-          label: 'Children',
-          type: 'rich-text',
+          name: "children",
+          label: "Children",
+          type: "rich-text",
         },
       ],
     },

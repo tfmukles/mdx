@@ -1,8 +1,8 @@
-import { MdxJsxFlowElement, MdxJsxTextElement } from 'mdast-util-mdx-jsx';
-import { visit } from 'unist-util-visit';
-import { remarkToSlate } from '../../parse/remarkToPlate';
-import { RichTextField } from '@tinacms/schema-tools';
-import type { Root } from 'mdast';
+import { RichTextField } from "@/types";
+import type { Root } from "mdast";
+import { MdxJsxFlowElement, MdxJsxTextElement } from "mdast-util-mdx-jsx";
+import { visit } from "unist-util-visit";
+import { remarkToSlate } from "../../parse/remarkToPlate";
 
 export const postProcessor = (
   tree: Root,
@@ -19,26 +19,26 @@ export const postProcessor = (
   ) => {
     const props: Record<string, any> = {};
     node.attributes.forEach((attribute) => {
-      if (attribute.type === 'mdxJsxAttribute') {
+      if (attribute.type === "mdxJsxAttribute") {
         props[attribute.name] = attribute.value;
       } else {
-        throw new Error('HANDLE mdxJsxExpressionAttribute');
+        throw new Error("HANDLE mdxJsxExpressionAttribute");
       }
     });
     if (node.children.length) {
       let tree;
-      if (node.type === 'mdxJsxTextElement') {
+      if (node.type === "mdxJsxTextElement") {
         tree = postProcessor(
           {
-            type: 'root',
-            children: [{ type: 'paragraph', children: node.children }],
+            type: "root",
+            children: [{ type: "paragraph", children: node.children }],
           },
           field,
           imageCallback
         );
       } else {
         tree = postProcessor(
-          { type: 'root', children: node.children },
+          { type: "root", children: node.children },
           field,
           imageCallback
         );
@@ -48,11 +48,11 @@ export const postProcessor = (
     node.props = props;
     // @ts-ignore
     delete node.attributes;
-    node.children = [{ type: 'text', text: '' }];
+    node.children = [{ type: "text", text: "" }];
   };
 
-  visit(tree, 'mdxJsxFlowElement', addPropsToMdxFlow);
-  visit(tree, 'mdxJsxTextElement', addPropsToMdxFlow);
+  visit(tree, "mdxJsxFlowElement", addPropsToMdxFlow);
+  visit(tree, "mdxJsxTextElement", addPropsToMdxFlow);
 
-  return remarkToSlate(tree, field, imageCallback, '', true);
+  return remarkToSlate(tree, field, imageCallback, "", true);
 };

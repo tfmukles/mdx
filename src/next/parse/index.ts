@@ -1,8 +1,8 @@
-import { fromMarkdown } from './markdown';
-import { compact } from 'mdast-util-compact';
-import { postProcessor } from './post-processing';
-import type { Root } from 'mdast';
-import type { RichTextField } from '@tinacms/schema-tools';
+import type { RichTextField } from "@/types";
+import type { Root } from "mdast";
+import { compact } from "mdast-util-compact";
+import { fromMarkdown } from "./markdown";
+import { postProcessor } from "./post-processing";
 
 export const parseMDX = (
   value: string,
@@ -20,6 +20,5 @@ const postProcess = (
   field: RichTextField,
   imageCallback: (s: string) => string
 ) => {
-  // Some of our processing results in adjacent nodes of the same type
   return postProcessor(compact(tree), field, imageCallback);
 };

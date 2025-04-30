@@ -100,24 +100,11 @@ export function factoryTag(
   };
 
   const afterStart: State = function (code) {
-    /**
-     * Orinal MDX factory-tag disallows this because `<` is ambiguous, but shortcodes
-     * may or may not be using that character so allow space after start
-     */
-    // Deviate from JSX, which allows arbitrary whitespace.
-    // See: <https://github.com/micromark/micromark-extension-mdx-jsx/issues/7>.
-    // if (markdownLineEnding(code) || markdownSpace(code)) {
-    //   return nok(code)
-    // }
-
-    // Any other ES whitespace does not get this treatment.
     returnState = beforeName;
     return optionalEsWhitespace(code);
   };
 
-  // Right after `<`, before an optional name.
   const beforeName: State = function (code) {
-    // Closing tag.
     if (code === codes.slash) {
       effects.enter(tagClosingMarkerType);
       effects.consume(code);
@@ -126,12 +113,10 @@ export function factoryTag(
       return optionalEsWhitespace;
     }
 
-    // Fragment opening tag.
     if (code === codes.greaterThan) {
       return tagEnd(code);
     }
 
-    // Start of a name.
     if (
       code !== codes.eof &&
       idStart(code) &&
@@ -144,25 +129,13 @@ export function factoryTag(
     }
 
     return nok(code);
-
-    // crash(
-    //   code,
-    //   'before name',
-    //   'a character that can start a name, such as a letter, `$`, or `_`' +
-    //     (code === codes.exclamationMark
-    //       ? ' (note: to create a comment in MDX, use `{/* text */}`)'
-    //       : '')
-    // )
   };
 
-  // At the start of a closing tag, right after `</`.
   const beforeClosingTagName: State = function (code) {
-    // Fragment closing tag.
     if (code === codes.greaterThan) {
       return tagEnd(code);
     }
 
-    // Start of a closing tag name.
     if (code !== codes.eof && idStart(code)) {
       effects.enter(tagNameType);
       effects.enter(tagNamePrimaryType);
@@ -171,33 +144,20 @@ export function factoryTag(
     }
 
     return nok(code);
-    // crash(
-    //   code,
-    //   'before name',
-    //   'a character that can start a name, such as a letter, `$`, or `_`' +
-    //     (code === codes.asterisk || code === codes.slash
-    //       ? ' (note: JS comments in JSX tags are not supported in MDX)'
-    //       : '')
-    // )
   };
 
-  // Inside the primary name.
   const primaryName: State = function (code) {
-    // Continuation of name: remain.
     const nextCharacterInName = pattern.name[nameIndex];
     const nextCodeInName = nextCharacterInName
       ? findCode(nextCharacterInName)
       : null;
-    // if (code === codes.dash || (code !== codes.eof && idCont(code))) {
     if (nextCodeInName === code) {
       effects.consume(code);
       nameIndex++;
       return primaryName;
     }
-    // Reset nameIndex
     nameIndex = 0;
 
-    // End of name.
     if (
       code === codes.dot ||
       code === codes.slash ||
@@ -213,6 +173,7 @@ export function factoryTag(
     }
 
     return nok(code);
+    // Error handling for invalid characters in name
     // crash(
     //   code,
     //   'in name',
@@ -307,7 +268,7 @@ export function factoryTag(
     );
   };
 
-  // We’ve seen a `.` and are expecting a member name.
+  // We've seen a `.` and are expecting a member name.
   const beforeMemberName: State = function (code) {
     // Start of a member name.
     if (code !== codes.eof && idStart(code)) {
@@ -332,7 +293,7 @@ export function factoryTag(
       return memberName;
     }
 
-    // End of member name (note that namespaces and members can’t be combined).
+    // End of member name (note that namespaces and members can't be combined).
     if (
       code === codes.dot ||
       code === codes.slash ||
@@ -346,7 +307,7 @@ export function factoryTag(
       return optionalEsWhitespace(code);
     }
 
-    // TODO: not sure when this happens
+    // Invalid character in member name
     crash(
       code,
       "in member name",
@@ -357,7 +318,7 @@ export function factoryTag(
     );
   };
 
-  // After a member name: this is the same as `afterPrimaryName` but we don’t
+  // After a member name: this is the same as `afterPrimaryName` but we don't
   // expect colons.
   const afterMemberName: State = function (code) {
     // Start another member name.
@@ -382,6 +343,7 @@ export function factoryTag(
 
     return nok(code);
 
+    // Error handling for invalid characters after member name
     // crash(
     //   code,
     //   'after member name',
@@ -389,7 +351,7 @@ export function factoryTag(
     // )
   };
 
-  // We’ve seen a `:`, and are expecting a local name.
+  // We've seen a `:`, and are expecting a local name.
   const beforeLocalName: State = function (code) {
     // Start of a local name.
     if (code !== codes.eof && idStart(code)) {
@@ -419,7 +381,7 @@ export function factoryTag(
       return localName;
     }
 
-    // End of local name (note that we don’t expect another colon, or a member).
+    // End of local name (note that we don't expect another colon, or a member).
     if (
       code === codes.slash ||
       code === codes.greaterThan ||
@@ -439,7 +401,7 @@ export function factoryTag(
     );
   };
 
-  // After a local name: this is the same as `afterPrimaryName` but we don’t
+  // After a local name: this is the same as `afterPrimaryName` but we don't
   // expect colons or periods.
   const afterLocalName: State = function (code) {
     // End of name.
@@ -457,8 +419,7 @@ export function factoryTag(
       return beforeAttribute(code);
     }
 
-    // TODO: not sure how to trigger this one
-
+    // Error handling for unexpected characters after local name
     crash(
       code,
       "after local name",
@@ -542,6 +503,7 @@ export function factoryTag(
     }
 
     return nok;
+    // Error handling for invalid characters before attribute name
     // crash(
     //   code,
     //   'before attribute name',
@@ -579,6 +541,7 @@ export function factoryTag(
     }
 
     return nok(code);
+    // Error handling for invalid characters in attribute name
     // crash(
     //   code,
     //   'in attribute name',
@@ -623,6 +586,7 @@ export function factoryTag(
     }
 
     return nok(code);
+    // Error handling for invalid characters after attribute name
     // crash(
     //   code,
     //   'after attribute name',
@@ -630,7 +594,7 @@ export function factoryTag(
     // )
   };
 
-  // We’ve seen a `:`, and are expecting a local name.
+  // We've seen a `:`, and are expecting a local name.
   const beforeAttributeLocalName: State = function (code) {
     // Start of a local name.
     if (code !== codes.eof && idStart(code)) {
@@ -639,8 +603,7 @@ export function factoryTag(
       return attributeLocalName;
     }
 
-    // TODO not sure how to trigger this
-
+    // Error handling for invalid characters before local attribute name
     crash(
       code,
       "before local attribute name",
@@ -671,8 +634,7 @@ export function factoryTag(
       return optionalEsWhitespace(code);
     }
 
-    // TODO not sure how to trigger this
-
+    // Error handling for invalid characters in local attribute name
     crash(
       code,
       "in local attribute name",
@@ -702,7 +664,7 @@ export function factoryTag(
       return beforeAttribute(code);
     }
 
-    // TODO not sure how to trigger this
+    // Error handling for invalid characters after local attribute name
     crash(
       code,
       "after local attribute name",
@@ -743,6 +705,7 @@ export function factoryTag(
     }
 
     return nok(code);
+    // Error handling for invalid characters before attribute value
     // crash(
     //   code,
     //   'before attribute value',
@@ -765,6 +728,7 @@ export function factoryTag(
 
     if (code === codes.eof) {
       return nok(code);
+      // Error handling for unexpected EOF in attribute value
       // crash(
       //   code,
       //   'in attribute value',
@@ -811,7 +775,7 @@ export function factoryTag(
       return tagEnd(code);
     }
 
-    // Not sure how to trigger this
+    // Error handling for invalid characters after self-closing slash
     crash(
       code,
       "after self-closing slash",

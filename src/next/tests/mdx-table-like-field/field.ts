@@ -1,55 +1,55 @@
-import { RichTextField } from '@tinacms/schema-tools';
+import { RichTextField } from "@/types";
 
 export const field: RichTextField = {
-  name: 'body',
-  type: 'rich-text',
-  parser: { type: 'mdx' },
+  name: "body",
+  type: "rich-text",
+  parser: { type: "mdx" },
   templates: [
     {
-      name: 'TestComponent',
-      label: 'Test component',
+      name: "TestComponent",
+      label: "Test component",
       fields: [
         {
-          label: 'Rows',
-          name: 'rows',
-          type: 'object',
+          label: "Rows",
+          name: "rows",
+          type: "object",
           list: true,
           fields: [
             {
-              label: 'Cells',
-              name: 'celss',
+              label: "Cells",
+              name: "celss",
               list: true,
-              type: 'string',
+              type: "string",
             },
             {
-              label: 'Is Header',
-              name: 'isHeader',
-              type: 'boolean',
+              label: "Is Header",
+              name: "isHeader",
+              type: "boolean",
             },
           ],
         },
       ],
     },
     {
-      name: 'TestComponent2',
-      label: 'Test component 2',
+      name: "TestComponent2",
+      label: "Test component 2",
       fields: [
         {
-          label: 'Rows',
-          name: 'rows',
-          type: 'object',
+          label: "Rows",
+          name: "rows",
+          type: "object",
           list: true,
           fields: [
             {
-              label: 'Cells',
-              name: 'celss',
+              label: "Cells",
+              name: "celss",
               list: true,
-              type: 'number',
+              type: "number",
             },
             {
-              label: 'Is Header',
-              name: 'isHeader',
-              type: 'boolean',
+              label: "Is Header",
+              name: "isHeader",
+              type: "boolean",
             },
           ],
         },
