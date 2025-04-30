@@ -22,11 +22,19 @@
       "props": {
         "rows": [
           {
-            "celss": ["Three", "Two", "One"],
+            "celss": [
+              "Three",
+              "Two",
+              "One"
+            ],
             "isHeader": true
           },
           {
-            "celss": ["C", "B", "A"]
+            "celss": [
+              "C",
+              "B",
+              "A"
+            ]
           }
         ]
       }
@@ -43,11 +51,19 @@
       "props": {
         "rows": [
           {
-            "celss": [1, 2, 3],
+            "celss": [
+              1,
+              2,
+              3
+            ],
             "isHeader": true
           },
           {
-            "celss": [4, 5, 6]
+            "celss": [
+              4,
+              5,
+              6
+            ]
           }
         ]
       }
