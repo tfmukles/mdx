@@ -3,7 +3,7 @@ import { ContainerDirective } from "mdast-util-directive";
 import { LeafDirective } from "mdast-util-directive/lib";
 import type { MdxJsxFlowElement, MdxJsxTextElement } from "mdast-util-mdx-jsx";
 import { source } from "unist-util-source";
-import { toTinaMarkdown } from "../stringify";
+import { toSitepinsMarkdown } from "../stringify";
 import { extractAttributes } from "./acorn";
 import type * as Plate from "./plate";
 import { remarkToSlate, RichTextParseError } from "./remarkToPlate";
@@ -41,7 +41,10 @@ export function mdxJsxElement(
       throw new Error("Global templates not yet supported");
     }
     if (!template) {
-      const string = toTinaMarkdown({ type: "root", children: [node] }, field);
+      const string = toSitepinsMarkdown(
+        { type: "root", children: [node] },
+        field
+      );
       return {
         type: node.type === "mdxJsxFlowElement" ? "html" : "html_inline",
         value: string.trim(),
@@ -49,7 +52,6 @@ export function mdxJsxElement(
       };
     }
 
-    // FIXME: these should be passed through to the field resolver in @tinacms/graphql (via dependency injection)
     const props = extractAttributes(
       node.attributes,
       template.fields,

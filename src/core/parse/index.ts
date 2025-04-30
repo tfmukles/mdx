@@ -6,8 +6,8 @@ import { remark } from "remark";
 import remarkGfm from "remark-gfm";
 import remarkMdx, { type Root } from "remark-mdx";
 import { parseMDX as parseMDXNext } from "../../next";
-import { tinaDirective } from "../extensions/tina-shortcodes/extension";
-import { directiveFromMarkdown } from "../extensions/tina-shortcodes/from-markdown";
+import { sitepinsDirective } from "../extensions/sitepins-shortcodes/extension";
+import { directiveFromMarkdown } from "../extensions/sitepins-shortcodes/from-markdown";
 import type { Pattern } from "../stringify";
 import { parseShortcode } from "./parseShortcode";
 import type * as Plate from "./plate";
@@ -31,17 +31,18 @@ export const markdownToAst = (value: string, field: RichTextType) => {
     }
   });
   return fromMarkdown(value, {
-    extensions: [gfm(), tinaDirective(patterns)],
+    extensions: [gfm(), sitepinsDirective(patterns)],
     mdastExtensions: [gfmFromMarkdown(), directiveFromMarkdown],
   });
 };
 export const mdxToAst = (value: string) => {
   return remark().use(remarkMdx).use(remarkGfm).parse(value);
 };
+
 export const MDX_PARSE_ERROR_MSG =
-  "TinaCMS supports a stricter version of markdown and a subset of MDX. https://tina.io/docs/editing/mdx/#differences-from-other-mdx-implementations";
+  "Sitepins implements a more restrictive markdown variant and limited MDX functionality. https://docs.sitepins.com/editing/mdx/#differences-from-other-mdx-implementations";
 export const MDX_PARSE_ERROR_MSG_HTML =
-  'TinaCMS supports a stricter version of markdown and a subset of MDX. <a href="https://tina.io/docs/editing/mdx/#differences-from-other-mdx-implementations" target="_blank" rel="noopener noreferrer">Learn More</a>';
+  'Sitepins implements a more restrictive markdown variant and limited MDX functionality. <a href="https://docs.sitepins.com/editing/mdx/#differences-from-other-mdx-implementations" target="_blank" rel="noopener noreferrer">Learn More</a>';
 
 export const parseMDX = (
   value: string,

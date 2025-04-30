@@ -1,7 +1,7 @@
 import { RichTextField } from "@/types";
 import type * as Plate from "../../core/parse/plate";
 import { preProcess } from "./pre-processing";
-import { toTinaMarkdown } from "./to-markdown";
+import { toSitepinsMarkdown } from "./to-markdown";
 
 export const stringifyMDX = (
   value: Plate.RootElement,
@@ -12,5 +12,5 @@ export const stringifyMDX = (
     return;
   }
   const mdTree = preProcess(value, field, imageCallback);
-  return toTinaMarkdown(mdTree, field);
+  return toSitepinsMarkdown(mdTree, field);
 };

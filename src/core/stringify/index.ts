@@ -9,7 +9,7 @@ import {
 import { Handlers, toMarkdown } from "mdast-util-to-markdown";
 import { text } from "mdast-util-to-markdown/lib/handle/text";
 import { stringifyMDX as stringifyMDXNext } from "../../next";
-import { directiveToMarkdown } from "../extensions/tina-shortcodes/to-markdown";
+import { directiveToMarkdown } from "../extensions/sitepins-shortcodes/to-markdown";
 import type * as Plate from "../parse/plate";
 import { stringifyProps } from "./acorn";
 import { eat } from "./marks";
@@ -51,7 +51,7 @@ export const stringifyMDX = (
     }
   }
   const tree = rootElement(value, field, imageCallback);
-  const res = toTinaMarkdown(tree, field);
+  const res = toSitepinsMarkdown(tree, field);
   const templatesWithMatchers = field.templates?.filter(
     (template) => template.match
   );
@@ -75,7 +75,7 @@ export type Pattern = {
   type: "block" | "leaf";
 };
 
-export const toTinaMarkdown = (tree: Md.Root, field: RichTextType) => {
+export const toSitepinsMarkdown = (tree: Md.Root, field: RichTextType) => {
   const patterns: Pattern[] = [];
   field.templates?.forEach((template) => {
     if (typeof template === "string") {

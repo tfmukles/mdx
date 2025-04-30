@@ -6,7 +6,7 @@ import { text } from "mdast-util-to-markdown/lib/handle/text";
 import { mdxJsxToMarkdown } from "../shortcodes/mdast";
 import { getFieldPatterns } from "../util";
 
-export const toTinaMarkdown = (tree: Md.Root, field: RichTextField) => {
+export const toSitepinsMarkdown = (tree: Md.Root, field: RichTextField) => {
   const patterns = getFieldPatterns(field);
   // @ts-ignore
   const handlers: Handlers = {};

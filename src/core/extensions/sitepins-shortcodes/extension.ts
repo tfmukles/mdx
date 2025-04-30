@@ -1,9 +1,9 @@
-import type { Construct, Extension } from 'micromark-util-types';
-import { directiveLeaf, findCode } from './shortcode-leaf';
-import type { Pattern } from '../../stringify';
-import { directiveContainer } from './shortcode-container';
+import type { Construct, Extension } from "micromark-util-types";
+import type { Pattern } from "../../stringify";
+import { directiveContainer } from "./shortcode-container";
+import { directiveLeaf, findCode } from "./shortcode-leaf";
 
-export const tinaDirective: (patterns: Pattern[]) => Extension = function (
+export const sitepinsDirective: (patterns: Pattern[]) => Extension = function (
   patterns
 ) {
   const rules: Record<number, Construct[]> = {};
@@ -12,7 +12,7 @@ export const tinaDirective: (patterns: Pattern[]) => Extension = function (
     if (firstKey) {
       const code = findCode(firstKey);
       if (code) {
-        if (pattern.type === 'leaf') {
+        if (pattern.type === "leaf") {
           const directive = directiveLeaf(pattern);
           if (rules[code]) {
             rules[code] = [...(rules[code] || []), directive];
@@ -20,7 +20,7 @@ export const tinaDirective: (patterns: Pattern[]) => Extension = function (
             rules[code] = [directive];
           }
         }
-        if (pattern.type === 'block') {
+        if (pattern.type === "block") {
           const directive = directiveContainer(pattern);
           if (rules[code]) {
             rules[code] = [...(rules[code] || []), directive];

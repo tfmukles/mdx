@@ -1,4 +1,4 @@
-Welcome to the barebones starter for TinaCMS!
+Welcome to the barebones starter for Sitepins!
 
 <TestComponent
   rows={[
