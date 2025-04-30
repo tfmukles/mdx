@@ -8,6 +8,7 @@ export default defineConfig({
       name: "sitepins-mdx",
       fileName: (format) => {
         if (format === "es") return "index.mjs";
+        if (format === "cjs") return "index.js";
         if (format === "umd") return "index.browser.mjs";
         return "index.js";
       },
@@ -54,6 +55,7 @@ export default defineConfig({
     dts({
       insertTypesEntry: true,
       include: ["src"],
+      rollupTypes: true,
     }),
   ],
   assetsInclude: ["**/*.md"],
