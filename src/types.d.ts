@@ -1,8 +1,3 @@
-declare module "*.md?raw" {
-  const content: string;
-  export default content;
-}
-
 type MaybeNamespace<WithNamespace extends boolean = false> =
   WithNamespace extends true
     ? {

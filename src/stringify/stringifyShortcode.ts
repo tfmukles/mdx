@@ -1,4 +1,4 @@
-import { RichTextTemplate } from "@tinacms/schema-tools";
+import { RichTextTemplate } from "@/types";
 import { replaceAll } from "../parse";
 
 export function stringifyShortcode(

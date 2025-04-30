@@ -26,7 +26,6 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@tinacms/schema-tools": "^1.4.8",
     "acorn": "8.8.2",
     "ccount": "2.0.1",
     "estree-util-is-identifier-name": "2.1.0",
