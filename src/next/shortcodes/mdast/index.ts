@@ -5,6 +5,9 @@ import type {
   OnExitError,
   Token,
 } from "mdast-util-from-markdown";
+
+import type { Program } from "estree";
+
 import type {
   MdxJsxAttribute,
   MdxJsxAttributeValueExpression,
@@ -37,6 +40,14 @@ type Tag = {
   shouldFallback?: boolean;
 };
 
+// Explicitly extend the CompileData type to include custom keys
+declare module "mdast-util-from-markdown" {
+  interface CompileData {
+    mdxJsxTagStack?: Tag[];
+    mdxJsxTag?: Tag;
+  }
+}
+
 export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   const buffer: FromMarkdownHandle = function () {
     this.buffer();
@@ -56,31 +67,25 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
       start: token.start,
       end: token.end,
     };
-    if (!this.getData("mdxJsxTagStack")) this.setData("mdxJsxTagStack", []);
+    if (!this.getData("mdxJsxTagStack"))
+      this.setData("mdxJsxTagStack", [] as Tag[]);
     this.setData("mdxJsxTag", tag);
     this.buffer();
   };
 
   const enterMdxJsxTagClosingMarker: FromMarkdownHandle = function (token) {
-    const stack: Array<Tag> | undefined = this.getData("mdxJsxTagStack");
-    const tag: Tag | undefined = this.getData("mdxJsxTag");
+    const stack = this.getData("mdxJsxTagStack") as Tag[] | undefined;
+    const tag = this.getData("mdxJsxTag") as Tag | undefined;
 
     if (stack?.length === 0) {
-      // Indicate that when we're exiting this tag, we should transform
-      // it into text node instead
       if (tag) {
         tag.shouldFallback = true;
       }
-      // throw new VFileMessage(
-      //   'Unexpected closing slash `/` in tag, expected an open tag first, be sure your opening tag is formatted properly',
-      //   { start: token.start, end: token.end },
-      //   'mdast-util-mdx-jsx:unexpected-closing-slash'
-      // )
     }
   };
 
   const enterMdxJsxTagAnyAttribute: FromMarkdownHandle = function (token) {
-    const tag: Tag | undefined = this.getData("mdxJsxTag");
+    const tag = this.getData("mdxJsxTag") as Tag | undefined;
 
     // We're still treating this token as invalid, but instead
     // of erroring, we'll tokenize it as a text value
@@ -94,7 +99,7 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   };
 
   const enterMdxJsxTagSelfClosingMarker: FromMarkdownHandle = function (token) {
-    const tag: Tag | undefined = this.getData("mdxJsxTag");
+    const tag = this.getData("mdxJsxTag") as Tag | undefined;
 
     if (tag?.close) {
       throw new VFileMessage(
@@ -106,35 +111,35 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   };
 
   const exitMdxJsxTagClosingMarker: FromMarkdownHandle = function () {
-    const tag: Tag | undefined = this.getData("mdxJsxTag");
+    const tag = this.getData("mdxJsxTag") as Tag | undefined;
     if (tag) {
       tag.close = true;
     }
   };
 
   const exitMdxJsxTagNamePrimary: FromMarkdownHandle = function (token) {
-    const tag: Tag | undefined = this.getData("mdxJsxTag");
+    const tag = this.getData("mdxJsxTag") as Tag | undefined;
     if (tag) {
       tag.name = this.sliceSerialize(token);
     }
   };
 
   const exitMdxJsxTagNameMember: FromMarkdownHandle = function (token) {
-    const tag: Tag | undefined = this.getData("mdxJsxTag");
+    const tag = this.getData("mdxJsxTag") as Tag | undefined;
     if (tag) {
       tag.name += "." + this.sliceSerialize(token);
     }
   };
 
   const exitMdxJsxTagNameLocal: FromMarkdownHandle = function (token) {
-    const tag: Tag | undefined = this.getData("mdxJsxTag");
+    const tag = this.getData("mdxJsxTag") as Tag | undefined;
     if (tag) {
       tag.name += ":" + this.sliceSerialize(token);
     }
   };
 
   const enterMdxJsxTagAttribute: FromMarkdownHandle = function (token) {
-    const tag: Tag | undefined = this.getData("mdxJsxTag");
+    const tag = this.getData("mdxJsxTag") as Tag | undefined;
     enterMdxJsxTagAnyAttribute.call(this, token);
     if (tag) {
       tag.attributes.push({ type: "mdxJsxAttribute", name: "", value: null });
@@ -144,7 +149,7 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   const enterMdxJsxTagExpressionAttribute: FromMarkdownHandle = function (
     token
   ) {
-    const tag: Tag | undefined = this.getData("mdxJsxTag");
+    const tag = this.getData("mdxJsxTag") as Tag | undefined;
     enterMdxJsxTagAnyAttribute.call(this, token);
     if (tag) {
       tag.attributes.push({ type: "mdxJsxExpressionAttribute", value: "" });
@@ -155,7 +160,7 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   const exitMdxJsxTagExpressionAttribute: FromMarkdownHandle = function (
     token
   ) {
-    const tag: Tag | undefined = this.getData("mdxJsxTag");
+    const tag = this.getData("mdxJsxTag") as Tag | undefined;
     if (tag) {
       const tail: MdxJsxExpressionAttribute | MdxJsxAttribute | undefined =
         tag.attributes[tag.attributes.length - 1];
@@ -176,7 +181,7 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   const exitMdxJsxTagAttributeNamePrimary: FromMarkdownHandle = function (
     token
   ) {
-    const tag: Tag | undefined = this.getData("mdxJsxTag");
+    const tag = this.getData("mdxJsxTag") as Tag | undefined;
     if (tag) {
       const node:
         | (MdxJsxExpressionAttribute & { name?: string })
@@ -189,7 +194,7 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   };
 
   const exitMdxJsxTagAttributeNameLocal: FromMarkdownHandle = function (token) {
-    const tag: Tag | undefined = this.getData("mdxJsxTag");
+    const tag = this.getData("mdxJsxTag") as Tag | undefined;
     if (tag) {
       const node:
         | (MdxJsxExpressionAttribute & { name?: string })
@@ -202,7 +207,7 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   };
 
   const exitMdxJsxTagAttributeValueLiteral: FromMarkdownHandle = function () {
-    const tag: Tag | undefined = this.getData("mdxJsxTag");
+    const tag = this.getData("mdxJsxTag") as Tag | undefined;
     if (tag) {
       const attribute:
         | (MdxJsxExpressionAttribute & { name?: string })
@@ -227,7 +232,7 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   const exitMdxJsxTagAttributeValueExpression: FromMarkdownHandle = function (
     token
   ) {
-    const tag: Tag | undefined = this.getData("mdxJsxTag");
+    const tag = this.getData("mdxJsxTag") as Tag | undefined;
     if (!tag) return;
     const tail:
       | (MdxJsxExpressionAttribute & { name?: string })
@@ -251,7 +256,7 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   };
 
   const exitMdxJsxTagSelfClosingMarker: FromMarkdownHandle = function () {
-    const tag: Tag | undefined = this.getData("mdxJsxTag");
+    const tag = this.getData("mdxJsxTag") as Tag | undefined;
 
     if (tag) {
       tag.selfClosing = true;
@@ -263,8 +268,8 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
    * @type {FromMarkdownHandle}
    */
   const exitMdxJsxTag: FromMarkdownHandle = function (token) {
-    const tag: Tag | undefined = this.getData("mdxJsxTag");
-    const stack: Tag[] | undefined = this.getData("mdxJsxTagStack");
+    const tag = this.getData("mdxJsxTag") as Tag | undefined;
+    const stack = this.getData("mdxJsxTagStack") as Tag[] | undefined;
     if (!stack) return;
     const tail = stack[stack.length - 1];
 
@@ -346,7 +351,7 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   };
 
   const onErrorRightIsTag: OnEnterError = function (closing, open) {
-    const tag: Tag | undefined = this.getData("mdxJsxTag");
+    const tag = this.getData("mdxJsxTag") as Tag | undefined;
     if (!tag) return;
     const place = closing ? " before the end of `" + closing.type + "`" : "";
     const position = closing
