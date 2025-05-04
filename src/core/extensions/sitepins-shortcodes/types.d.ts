@@ -1,4 +1,4 @@
-import type { BlockContent, DefinitionContent, PhrasingContent } from 'mdast';
+import type { BlockContent, DefinitionContent, PhrasingContent } from "mdast";
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 interface DirectiveFields {
@@ -23,7 +23,7 @@ export interface ContainerDirective extends Parent, DirectiveFields {
   /**
    * Node type.
    */
-  type: 'containerDirective';
+  type: "containerDirective";
 
   /**
    * Content.
@@ -40,7 +40,7 @@ export interface LeafDirective extends Parent, DirectiveFields {
   /**
    * Node type.
    */
-  type: 'leafDirective';
+  type: "leafDirective";
 
   /**
    * Content.
@@ -56,7 +56,7 @@ export interface TextDirective extends Parent, DirectiveFields {
   /**
    * Node type.
    */
-  type: 'textDirective';
+  type: "textDirective";
 
   /**
    * Content.
@@ -70,7 +70,7 @@ export interface TextDirective extends Parent, DirectiveFields {
 export type Directive = ContainerDirective | LeafDirective | TextDirective;
 
 // Add custom data tracked to turn markdown into a tree.
-declare module 'mdast-util-from-markdown' {
+declare module "mdast-util-from-markdown" {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
   interface CompileData {
     /**
@@ -81,7 +81,7 @@ declare module 'mdast-util-from-markdown' {
 }
 
 // Add custom data tracked to turn a syntax tree into markdown.
-declare module 'mdast-util-to-markdown' {
+declare module "mdast-util-to-markdown" {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
   interface ConstructNameMap {
     /**
@@ -94,7 +94,7 @@ declare module 'mdast-util-to-markdown' {
      *     ^^^
      * ```
      */
-    containerDirective: 'containerDirective';
+    containerDirective: "containerDirective";
 
     /**
      * Label of a container directive.
@@ -105,7 +105,7 @@ declare module 'mdast-util-to-markdown' {
      *   | :::
      * ```
      */
-    containerDirectiveLabel: 'containerDirectiveLabel';
+    containerDirectiveLabel: "containerDirectiveLabel";
 
     /**
      * Whole leaf directive.
@@ -115,7 +115,7 @@ declare module 'mdast-util-to-markdown' {
      *     ^^^
      * ```
      */
-    leafDirective: 'leafDirective';
+    leafDirective: "leafDirective";
 
     /**
      * Label of a leaf directive.
@@ -125,7 +125,7 @@ declare module 'mdast-util-to-markdown' {
      *        ^^^
      * ```
      */
-    leafDirectiveLabel: 'leafDirectiveLabel';
+    leafDirectiveLabel: "leafDirectiveLabel";
 
     /**
      * Whole text directive.
@@ -135,7 +135,7 @@ declare module 'mdast-util-to-markdown' {
      *     ^^
      * ```
      */
-    textDirective: 'textDirective';
+    textDirective: "textDirective";
 
     /**
      * Label of a text directive.
@@ -145,12 +145,12 @@ declare module 'mdast-util-to-markdown' {
      *       ^^^
      * ```
      */
-    textDirectiveLabel: 'textDirectiveLabel';
+    textDirectiveLabel: "textDirectiveLabel";
   }
 }
 
 // Add nodes to content.
-declare module 'mdast' {
+declare module "mdast" {
   // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
   interface StaticPhrasingContentMap {
     /**

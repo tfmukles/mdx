@@ -1,7 +1,7 @@
-import type { TokenizeContext, Effects, State } from 'micromark-util-types';
-import { asciiAlpha, asciiAlphanumeric } from 'micromark-util-character';
-import { codes } from 'micromark-util-symbol/codes';
-import { findCode } from './shortcode-leaf';
+import { asciiAlpha, asciiAlphanumeric } from "micromark-util-character";
+import { codes } from "micromark-util-symbol/codes";
+import type { Effects, State, TokenizeContext } from "micromark-util-types";
+import { findCode } from "./shortcode-leaf";
 
 export function factoryName(
   this: TokenizeContext,
@@ -16,25 +16,25 @@ export function factoryName(
   let nameIndex = 0;
 
   const start: State = function (code) {
-    const character = patternName[nameIndex];
-    if (asciiAlpha(code) && findCode(character) === code) {
-      nameIndex++;
-      effects.enter(type);
-      effects.consume(code);
-      return name;
+    if (!matchesPatternCharacter(code, nameIndex)) {
+      return nok(code);
     }
 
-    return nok(code);
+    nameIndex++;
+    effects.enter(type);
+    effects.consume(code);
+    return name;
   };
 
   const name: State = function (code) {
-    const character = patternName[nameIndex];
-    if (
+    // Check if the code is valid for a name character
+    const isValidNameChar =
       code === codes.dash ||
       code === codes.underscore ||
-      asciiAlphanumeric(code)
-    ) {
-      if (findCode(character) === code) {
+      asciiAlphanumeric(code);
+
+    if (isValidNameChar) {
+      if (matchesPatternCharacter(code, nameIndex)) {
         effects.consume(code);
         nameIndex++;
         return name;
@@ -43,10 +43,18 @@ export function factoryName(
     }
 
     effects.exit(type);
-    return self.previous === codes.dash || self.previous === codes.underscore
-      ? nok(code)
-      : ok(code);
+
+    // Ensure name doesn't end with dash or underscore
+    const isInvalidEnding =
+      self.previous === codes.dash || self.previous === codes.underscore;
+
+    return isInvalidEnding ? nok(code) : ok(code);
   };
+
+  function matchesPatternCharacter(code: number, index: number): boolean {
+    const character = patternName[index];
+    return asciiAlpha(code) && findCode(character) === code;
+  }
 
   return start;
 }

@@ -1,15 +1,15 @@
-import type { Effects, State, Code } from 'micromark-util-types';
-import { factorySpace } from 'micromark-factory-space';
-import { factoryWhitespace } from 'micromark-factory-whitespace';
+import { factorySpace } from "micromark-factory-space";
+import { factoryWhitespace } from "micromark-factory-whitespace";
 import {
   asciiAlpha,
   asciiAlphanumeric,
   markdownLineEnding,
   markdownLineEndingOrSpace,
   markdownSpace,
-} from 'micromark-util-character';
-import { codes } from 'micromark-util-symbol/codes';
-import { types } from 'micromark-util-symbol/types';
+} from "micromark-util-character";
+import { codes } from "micromark-util-symbol/codes";
+import { types } from "micromark-util-symbol/types";
+import type { Code, Effects, State } from "micromark-util-types";
 
 export function factoryAttributes(
   effects: Effects,
@@ -41,22 +41,26 @@ export function factoryAttributes(
   };
 
   const between: State = function (code) {
+    // Handle ID shortcut (#)
     if (code === codes.numberSign) {
       type = attributeIdType;
       return shortcutStart(code);
     }
 
+    // Handle class shortcut (.)
     if (code === codes.dot) {
       type = attributeClassType;
       return shortcutStart(code);
     }
 
+    // Handle attribute name
     if (code === codes.colon || code === codes.underscore || asciiAlpha(code)) {
       effects.enter(attributeType);
       effects.enter(attributeNameType);
       effects.consume(code);
       return name;
     }
+
     // Skip the name, go directly to the value
     if (code === codes.quotationMark || code === codes.apostrophe) {
       effects.enter(attributeNameType);
@@ -65,6 +69,7 @@ export function factoryAttributes(
       return valueBefore(code);
     }
 
+    // Handle whitespace
     if (disallowEol && markdownSpace(code)) {
       return factorySpace(effects, between, types.whitespace)(code);
     }
@@ -79,9 +84,9 @@ export function factoryAttributes(
   const shortcutStart: State = function (code) {
     effects.enter(attributeType);
     effects.enter(type);
-    effects.enter(type + 'Marker');
+    effects.enter(type + "Marker");
     effects.consume(code);
-    effects.exit(type + 'Marker');
+    effects.exit(type + "Marker");
     return shortcutStartAfter;
   };
 
@@ -102,7 +107,7 @@ export function factoryAttributes(
       return nok(code);
     }
 
-    effects.enter(type + 'Value');
+    effects.enter(type + "Value");
     effects.consume(code);
     return shortcut;
   };
@@ -126,7 +131,7 @@ export function factoryAttributes(
       code === codes.rightCurlyBrace ||
       markdownLineEndingOrSpace(code)
     ) {
-      effects.exit(type + 'Value');
+      effects.exit(type + "Value");
       effects.exit(type);
       effects.exit(attributeType);
       return between(code);

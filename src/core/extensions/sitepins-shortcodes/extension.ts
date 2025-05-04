@@ -7,33 +7,31 @@ export const sitepinsDirective: (patterns: Pattern[]) => Extension = function (
   patterns
 ) {
   const rules: Record<number, Construct[]> = {};
+
   patterns.forEach((pattern) => {
     const firstKey = pattern.start[0];
-    if (firstKey) {
-      const code = findCode(firstKey);
-      if (code) {
-        if (pattern.type === "leaf") {
-          const directive = directiveLeaf(pattern);
-          if (rules[code]) {
-            rules[code] = [...(rules[code] || []), directive];
-          } else {
-            rules[code] = [directive];
-          }
-        }
-        if (pattern.type === "block") {
-          const directive = directiveContainer(pattern);
-          if (rules[code]) {
-            rules[code] = [...(rules[code] || []), directive];
-          } else {
-            rules[code] = [directive];
-          }
-        }
-      }
+    if (!firstKey) return;
+
+    const code = findCode(firstKey);
+    if (!code) return;
+
+    const directive =
+      pattern.type === "leaf"
+        ? directiveLeaf(pattern)
+        : pattern.type === "block"
+        ? directiveContainer(pattern)
+        : null;
+
+    if (!directive) return;
+
+    if (!rules[code]) {
+      rules[code] = [directive];
+    } else {
+      rules[code].push(directive);
     }
   });
+
   return {
-    // text: { [codes.colon]: directiveText },
-    // flow: { [codes.leftCurlyBrace]: [directive] },
     flow: rules,
   };
 };
