@@ -5,7 +5,7 @@ import type {
   MdxJsxAttributeValueExpression,
   MdxJsxExpressionAttribute,
 } from 'mdast-util-mdx-jsx';
-import { MDX_PARSE_ERROR_MSG, parseMDX } from './mainParser';
+import { MDX_PARSE_ERROR_MSG, processMDXContent } from './mainParser';
 
 type StringField =
   | Extract<Field, { type: 'string' }>
@@ -13,14 +13,14 @@ type StringField =
   | Extract<Field, { type: 'image' }>
   | Extract<Field, { type: 'reference' }>;
 
-export const extractAttributes = (
+export const parseJSXAttributes = (
   attributes: (MdxJsxAttribute | MdxJsxExpressionAttribute)[],
   fields: Field[],
   imageCallback: (image: string) => string
 ) => {
   const properties: Record<string, unknown> = {};
   attributes?.forEach(attribute => {
-    assertType(attribute, 'mdxJsxAttribute');
+    assertNodeType(attribute, 'mdxJsxAttribute');
     const field = fields.find(field => field.name === attribute.name);
     if (!field) {
       throw new Error(
@@ -28,7 +28,7 @@ export const extractAttributes = (
       );
     }
     try {
-      properties[attribute.name] = extractAttribute(
+      properties[attribute.name] = parseJSXAttribute(
         attribute,
         field,
         imageCallback
@@ -44,7 +44,8 @@ export const extractAttributes = (
   });
   return properties;
 };
-const extractAttribute = (
+
+const parseJSXAttribute = (
   attribute: MdxJsxAttribute,
   field: Field,
   imageCallback: (image: string) => string
@@ -52,37 +53,41 @@ const extractAttribute = (
   switch (field.type) {
     case 'boolean':
     case 'number':
-      return extractScalar(extractExpression(attribute), field);
+      return parseScalarValue(parseAttributeExpression(attribute), field);
     case 'datetime':
     case 'string':
       if (field.list) {
-        return extractScalar(extractExpression(attribute), field);
+        return parseScalarValue(parseAttributeExpression(attribute), field);
       } else {
-        return extractString(attribute, field);
+        return parseStringValue(attribute, field);
       }
     case 'image':
       if (field.list) {
-        const values = extractScalar(
-          extractExpression(attribute),
+        const values = parseScalarValue(
+          parseAttributeExpression(attribute),
           field
         ) as string;
         return values.split(',').map(value => imageCallback(value));
       } else {
-        const value = extractString(attribute, field);
+        const value = parseStringValue(attribute, field);
         return imageCallback(value);
       }
     case 'reference':
       if (field.list) {
-        return extractScalar(extractExpression(attribute), field);
+        return parseScalarValue(parseAttributeExpression(attribute), field);
       } else {
-        return extractString(attribute, field);
+        return parseStringValue(attribute, field);
       }
     case 'object':
-      return extractObject(extractExpression(attribute), field, imageCallback);
+      return parseObjectValue(
+        parseAttributeExpression(attribute),
+        field,
+        imageCallback
+      );
     case 'rich-text':
-      const JSXString = extractRaw(attribute);
+      const JSXString = parseRawAttributeValue(attribute);
       if (JSXString) {
-        return parseMDX(JSXString, field, imageCallback);
+        return processMDXContent(JSXString, field, imageCallback);
       } else {
         return {};
       }
@@ -91,7 +96,7 @@ const extractAttribute = (
   }
 };
 
-const extractScalar = <
+const parseScalarValue = <
   T extends Extract<
     Field,
     | { type: 'string' }
@@ -106,44 +111,49 @@ const extractScalar = <
   field: T
 ) => {
   if (field.list) {
-    assertType(attribute.expression, 'ArrayExpression');
+    assertNodeType(attribute.expression, 'ArrayExpression');
     return attribute.expression.elements.map(element => {
-      assertHasType(element);
-      assertType(element, 'Literal');
+      assertNodeHasType(element);
+      assertNodeType(element, 'Literal');
       return element.value;
     });
   } else {
-    assertType(attribute.expression, 'Literal');
+    assertNodeType(attribute.expression, 'Literal');
     return attribute.expression.value;
   }
 };
 
-const extractObject = <T extends Extract<Field, { type: 'object' }>>(
+const parseObjectValue = <T extends Extract<Field, { type: 'object' }>>(
   attribute: ExpressionStatement,
   field: T,
   imageCallback: (image: string) => string
 ) => {
   if (field.list) {
-    assertType(attribute.expression, 'ArrayExpression');
+    assertNodeType(attribute.expression, 'ArrayExpression');
     return attribute.expression.elements.map(element => {
-      assertHasType(element);
-      assertType(element, 'ObjectExpression');
-      return extractObjectExpression(element, field, imageCallback);
+      assertNodeHasType(element);
+      assertNodeType(element, 'ObjectExpression');
+      return parseObjectExpression(element, field, imageCallback);
     });
   } else {
-    assertType(attribute.expression, 'ObjectExpression');
-    return extractObjectExpression(attribute.expression, field, imageCallback);
+    assertNodeType(attribute.expression, 'ObjectExpression');
+    return parseObjectExpression(attribute.expression, field, imageCallback);
   }
 };
-const extractObjectExpression = (
+
+const parseObjectExpression = (
   expression: ObjectExpression,
   field: Extract<Field, { type: 'object' }>,
   imageCallback: (image: string) => string
 ) => {
   const properties: Record<string, unknown> = {};
   expression.properties?.forEach(property => {
-    assertType(property, 'Property');
-    const { key, value } = extractKeyValue(property, field, imageCallback);
+    assertNodeType(property, 'Property');
+    const { key, value } = parsePropertyKeyValue(
+      property,
+      field,
+      imageCallback
+    );
     properties[key] = value;
   });
   return properties;
@@ -161,60 +171,56 @@ const getField = (
   }
 };
 
-const extractKeyValue = (
+const parsePropertyKeyValue = (
   property: Property,
   parentField: Extract<Field, { type: 'object' }>,
   imageCallback: (image: string) => string
 ) => {
-  assertType(property.key, 'Identifier');
+  assertNodeType(property.key, 'Identifier');
   const key = property.key.name;
   const field = getField(parentField, key);
   if (field?.type === 'object') {
     if (field.list) {
-      assertType(property.value, 'ArrayExpression');
+      assertNodeType(property.value, 'ArrayExpression');
       const value = property.value.elements.map(element => {
-        assertHasType(element);
-        assertType(element, 'ObjectExpression');
-        return extractObjectExpression(element, field, imageCallback);
+        assertNodeHasType(element);
+        assertNodeType(element, 'ObjectExpression');
+        return parseObjectExpression(element, field, imageCallback);
       });
       return { key, value };
     } else {
-      assertType(property.value, 'ObjectExpression');
-      const value = extractObjectExpression(
-        property.value,
-        field,
-        imageCallback
-      );
+      assertNodeType(property.value, 'ObjectExpression');
+      const value = parseObjectExpression(property.value, field, imageCallback);
       return { key, value };
     }
   } else if (field?.list) {
-    assertType(property.value, 'ArrayExpression');
+    assertNodeType(property.value, 'ArrayExpression');
     const value = property.value.elements.map(element => {
-      assertHasType(element);
-      assertType(element, 'Literal');
+      assertNodeHasType(element);
+      assertNodeType(element, 'Literal');
       return element.value;
     });
     return { key, value };
   } else if (field?.type === 'rich-text') {
-    assertType(property.value, 'Literal');
+    assertNodeType(property.value, 'Literal');
     const raw = property.value.value;
     if (typeof raw === 'string') {
-      return { key, value: parseMDX(raw, field, imageCallback) };
+      return { key, value: processMDXContent(raw, field, imageCallback) };
     }
     throw new Error(`Unable to parse rich-text`);
   } else {
-    assertType(property.value, 'Literal');
+    assertNodeType(property.value, 'Literal');
     return { key, value: property.value.value };
   }
 };
 
-const extractStatement = (
+const parseExpressionStatement = (
   attribute: MdxJsxAttributeValueExpression
 ): ExpressionStatement => {
   const body = attribute.data?.estree?.body;
   if (body) {
     if (body[0]) {
-      assertType(body[0], 'ExpressionStatement');
+      assertNodeType(body[0], 'ExpressionStatement');
       // @ts-ignore incomplete types available Directive | ExpressionStatement
       return body[0];
     }
@@ -223,74 +229,67 @@ const extractStatement = (
   throw new Error(`Unable to extract body from expression`);
 };
 
-const extractString = (attribute: MdxJsxAttribute, field: StringField) => {
+const parseStringValue = (attribute: MdxJsxAttribute, field: StringField) => {
   if (attribute.type === 'mdxJsxAttribute') {
     if (typeof attribute.value === 'string') {
       return attribute.value;
     }
   }
-  return extractScalar(extractExpression(attribute), field) as string;
+  return parseScalarValue(parseAttributeExpression(attribute), field) as string;
 };
 
-const extractExpression = (attribute: MdxJsxAttribute): ExpressionStatement => {
-  assertType(attribute, 'mdxJsxAttribute');
-  assertHasType(attribute.value);
-  assertType(attribute.value, 'mdxJsxAttributeValueExpression');
-  return extractStatement(attribute.value);
+const parseAttributeExpression = (
+  attribute: MdxJsxAttribute
+): ExpressionStatement => {
+  assertNodeType(attribute, 'mdxJsxAttribute');
+  assertNodeHasType(attribute.value);
+  assertNodeType(attribute.value, 'mdxJsxAttributeValueExpression');
+  return parseExpressionStatement(attribute.value);
 };
 
-const extractRaw = (attribute: MdxJsxAttribute): string => {
-  assertType(attribute, 'mdxJsxAttribute');
-  assertHasType(attribute.value);
-  assertType(attribute.value, 'mdxJsxAttributeValueExpression');
+const parseRawAttributeValue = (attribute: MdxJsxAttribute): string => {
+  assertNodeType(attribute, 'mdxJsxAttribute');
+  assertNodeHasType(attribute.value);
+  assertNodeType(attribute.value, 'mdxJsxAttributeValueExpression');
   const rawValue = attribute.value.value;
-  return trimFragments(rawValue);
+  return removeFragmentWrappers(rawValue);
 };
 
-function assertType<T extends { type: string }, U extends T['type']>(
+function assertNodeType<T extends { type: string }, U extends T['type']>(
   val: T,
   type: U
 ): asserts val is Extract<T, { type: U }> {
   if (val.type !== type) {
     throw new Error(
-      `Expected type to be ${type} but received ${val.type}. ${MDX_PARSE_ERROR_MSG}`
+      `Expected node of type "${type}" but got "${val.type}". ${MDX_PARSE_ERROR_MSG}`
     );
   }
 }
 
-function assertHasType(
+function assertNodeHasType(
   val: null | undefined | string | { type: string }
 ): asserts val is { type: string } {
-  if (val) {
-    if (typeof val !== 'string') {
-      return;
-    }
+  if (!val || typeof val === 'string') {
+    throw new Error(
+      `Expected node with type but got "${typeof val}". ${MDX_PARSE_ERROR_MSG}`
+    );
   }
-  throw new Error(`Expect value to be an object with property "type"`);
 }
 
-export const trimFragments = (string: string) => {
-  const rawArr = string.split('\n');
-  let openingFragmentIndex: number | null = null;
-  let closingFragmentIndex: number | null = null;
-  rawArr.forEach((item, index) => {
-    if (item.trim() === '<>') {
-      if (!openingFragmentIndex) {
-        openingFragmentIndex = index + 1;
-      }
-    }
-  });
-  rawArr.reverse().forEach((item, index) => {
-    if (item.trim() === '</>') {
-      const length = rawArr.length - 1;
-      if (!closingFragmentIndex) {
-        closingFragmentIndex = length - index;
-      }
-    }
-  });
-  const value = rawArr
-    .reverse()
-    .slice(openingFragmentIndex || 0, closingFragmentIndex || rawArr.length - 1)
-    .join('\n');
-  return value;
+export const removeFragmentWrappers = (string: string) => {
+  const lines = string.split('\n');
+
+  // Find first opening fragment
+  const openingIndex = lines.findIndex(line => line.trim() === '<>');
+  if (openingIndex === -1) return string;
+
+  // Find last closing fragment
+  const closingIndex =
+    lines.length -
+    1 -
+    [...lines].reverse().findIndex(line => line.trim() === '</>');
+  if (closingIndex === -1) return string;
+
+  // Extract content between fragments
+  return lines.slice(openingIndex + 1, closingIndex).join('\n');
 };

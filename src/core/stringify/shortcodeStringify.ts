@@ -1,7 +1,7 @@
-import { replaceAll } from '@/core/parser/mainParser';
-import { Field, RichTextTemplate } from '@/types';
+import { replaceAllOccurrences } from '@/core/parser/mainParser';
+import type { Field, RichTextTemplate } from '@/types';
 
-export function stringifyShortcode(
+export function transformShortcodeToMarkdown(
   preprocessedString: string,
   template: RichTextTemplate
 ) {
@@ -21,5 +21,5 @@ export function stringifyShortcode(
   }${
     template.fields.find((t: Field) => t.name == 'children') ? closingRegex : ''
   }`;
-  return replaceAll(preprocessedString, regex, replace);
+  return replaceAllOccurrences(preprocessedString, regex, replace);
 }

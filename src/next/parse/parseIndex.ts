@@ -1,24 +1,24 @@
 import type { RichTextField } from '@/types';
 import type { Root } from 'mdast';
 import { compact } from 'mdast-util-compact';
-import { fromMarkdown } from './markdownParser';
-import { postProcessor } from './postProcessor';
+import { convertMarkdownToMDAST } from './markdownParser';
+import { transformMDASTToSlateAST } from './postProcessor';
 
-export const parseMDX = (
+export const convertMDXToSlateAST = (
   value: string,
   field: RichTextField,
   imageCallback?: (s: string) => string
 ) => {
   const backup = (v: string) => v;
   const callback = imageCallback || backup;
-  const tree = fromMarkdown(value, field);
-  return postProcess(tree, field, callback);
+  const tree = convertMarkdownToMDAST(value, field);
+  return processAndCompactAST(tree, field, callback);
 };
 
-const postProcess = (
+const processAndCompactAST = (
   tree: Root,
   field: RichTextField,
   imageCallback: (s: string) => string
 ) => {
-  return postProcessor(compact(tree), field, imageCallback);
+  return transformMDASTToSlateAST(compact(tree), field, imageCallback);
 };

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { trimFragments } from './acornEngine';
+import { removeFragmentWrappers } from './acornEngine';
 
-describe('trimFragments', () => {
+describe('removeFragmentWrappers', () => {
   it('initial fragment on a new line', () => {
     expect(
-      trimFragments(`
+      removeFragmentWrappers(`
   <>
     foo bar baz left
   </>
@@ -13,14 +13,14 @@ describe('trimFragments', () => {
   });
   it('fragment with no newlines', () => {
     expect(
-      trimFragments(`<>
+      removeFragmentWrappers(`<>
     foo bar baz left
   </>`)
     ).toMatchInlineSnapshot('"    foo bar baz left"');
   });
   it('fragment with extra fragments inside', () => {
     expect(
-      trimFragments(`<>
+      removeFragmentWrappers(`<>
       Ok
       <>
     foo bar baz left
@@ -35,7 +35,7 @@ describe('trimFragments', () => {
   });
   it('preserves newlines', () => {
     expect(
-      trimFragments(`<>
+      removeFragmentWrappers(`<>
       Ok
 
     foo bar baz left

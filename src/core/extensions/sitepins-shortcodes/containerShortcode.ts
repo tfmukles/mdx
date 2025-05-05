@@ -13,8 +13,8 @@ import type {
 } from 'micromark-util-types';
 import { ok as assert } from 'uvu/assert';
 import { factoryAttributes } from './attributesFactory';
-import { findCode } from './leafShortcode';
-import { factoryName } from './nameFactory';
+import { getCharacterCode } from './leafShortcode';
+import { createNameTokenizer } from './nameFactory';
 
 interface CustomTokenizeContext extends TokenizeContext {
   interrupt?: boolean;
@@ -23,7 +23,7 @@ interface CustomTokenizeContext extends TokenizeContext {
   };
 }
 
-export const directiveContainer = (pattern: Pattern): Construct => {
+export const createContainerDirective = (pattern: Pattern): Construct => {
   const tokenizeDirectiveContainer: Tokenizer = function (effects, ook, nnok) {
     const self = this as unknown as CustomTokenizeContext & {
       parser: { lazy: Record<number, boolean> };
@@ -45,7 +45,7 @@ export const directiveContainer = (pattern: Pattern): Construct => {
 
     const start: State = code => {
       const firstCharacter = pattern.start[0];
-      if (findCode(firstCharacter) === code) {
+      if (getCharacterCode(firstCharacter) === code) {
         effects.enter('directiveContainer');
         effects.enter('directiveContainerFence');
         effects.enter('directiveContainerSequence');
@@ -57,7 +57,7 @@ export const directiveContainer = (pattern: Pattern): Construct => {
 
     const sequenceOpen: State = code => {
       const nextCharacter = pattern.start[startSequenceIndex];
-      if (findCode(nextCharacter) === code) {
+      if (getCharacterCode(nextCharacter) === code) {
         effects.consume(code);
         startSequenceIndex++;
         return sequenceOpen;
@@ -75,7 +75,7 @@ export const directiveContainer = (pattern: Pattern): Construct => {
       if (markdownSpace(code)) {
         return factorySpace(effects, factorName, types.whitespace)(code);
       }
-      return factoryName.call(
+      return createNameTokenizer.call(
         self,
         effects,
         afterName,
@@ -97,7 +97,7 @@ export const directiveContainer = (pattern: Pattern): Construct => {
 
     const startAttributes: State = code => {
       const nextCharacter = pattern.end[endSequenceIndex];
-      if (findCode(nextCharacter) === code) {
+      if (getCharacterCode(nextCharacter) === code) {
         return afterAttributes(code);
       }
       return effects.attempt(
@@ -112,7 +112,7 @@ export const directiveContainer = (pattern: Pattern): Construct => {
       if (code === codes.eof) {
         return nok;
       }
-      if (findCode(nextCharacter) === code) {
+      if (getCharacterCode(nextCharacter) === code) {
         effects.consume(code);
         endSequenceIndex++;
         return afterAttributes;
@@ -229,7 +229,7 @@ export const directiveContainer = (pattern: Pattern): Construct => {
 
       const closingSequence: State = code => {
         const nextCharacter = pattern.start[closeStartSequenceIndex];
-        if (findCode(nextCharacter) === code) {
+        if (getCharacterCode(nextCharacter) === code) {
           effects.consume(code);
           closeStartSequenceIndex++;
           return closingSequence;
@@ -256,7 +256,7 @@ export const directiveContainer = (pattern: Pattern): Construct => {
           return nok;
         }
 
-        if (findCode(nextCharacter) === code) {
+        if (getCharacterCode(nextCharacter) === code) {
           effects.consume(code);
           endNameIndex++;
           return closingSequenceName;
@@ -295,7 +295,7 @@ export const directiveContainer = (pattern: Pattern): Construct => {
           return ok(code);
         }
         const nextCharacter = pattern.end[closeEndSequenceIndex];
-        if (findCode(nextCharacter) === code) {
+        if (getCharacterCode(nextCharacter) === code) {
           effects.consume(code);
           closeEndSequenceIndex++;
           return closingSequenceEnd;

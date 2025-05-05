@@ -8,7 +8,10 @@ import type { MdxJsxAttribute } from 'mdast-util-mdx-jsx';
 import * as Plate from '@/core/parser/plateHandler';
 // @ts-ignore Fix this by updating prettier
 import parser from 'prettier/esm/parser-espree.mjs';
-import { rootElement, stringifyMDX } from './mainStringify';
+import {
+  createRootNode,
+  convertElementToMDX as stringifyMDX,
+} from './mainStringify';
 
 export const stringifyPropsInline = (
   element: Plate.MdxInlineElement,
@@ -222,7 +225,7 @@ export function stringifyProps(
             `Nested rich-text element is not a valid shape for field ${field.name}`
           );
           if (field.name === 'children') {
-            const root = rootElement(value, field, imageCallback);
+            const root = createRootNode(value, field, imageCallback);
             root.children.forEach(child => {
               children.push(child);
             });

@@ -1,5 +1,5 @@
-import { parseMDX } from '@/core/parser/mainParser';
-import { stringifyMDX } from '@/core/stringify/mainStringify';
+import { processMDXContent as parseMDX } from '@/core/parser/mainParser';
+import { convertElementToMDX as stringifyMDX } from '@/core/stringify/mainStringify';
 import { expect, it } from 'vitest';
 import * as util from '../../util';
 import { field } from './field';

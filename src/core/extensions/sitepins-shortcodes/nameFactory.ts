@@ -1,9 +1,9 @@
+import { findCode } from '@/next/shortcodes/lib/shortcodeUtils';
 import { asciiAlpha, asciiAlphanumeric } from 'micromark-util-character';
 import { codes } from 'micromark-util-symbol/codes';
 import type { Effects, State, TokenizeContext } from 'micromark-util-types';
-import { findCode } from './leafShortcode';
 
-export function factoryName(
+export function createNameTokenizer(
   this: TokenizeContext,
   effects: Effects,
   ok: State,
@@ -16,7 +16,7 @@ export function factoryName(
   let nameIndex = 0;
 
   const start: State = function (code) {
-    if (!matchesPatternCharacter(code, nameIndex)) {
+    if (!isValidPatternCharacter(code, nameIndex)) {
       return nok(code);
     }
 
@@ -34,7 +34,7 @@ export function factoryName(
       asciiAlphanumeric(code);
 
     if (isValidNameChar) {
-      if (matchesPatternCharacter(code, nameIndex)) {
+      if (isValidPatternCharacter(code, nameIndex)) {
         effects.consume(code);
         nameIndex++;
         return name;
@@ -51,7 +51,7 @@ export function factoryName(
     return isInvalidEnding ? nok(code) : ok(code);
   };
 
-  function matchesPatternCharacter(code: number, index: number): boolean {
+  function isValidPatternCharacter(code: number, index: number): boolean {
     const character = patternName[index];
     return asciiAlpha(code) && findCode(character) === code;
   }

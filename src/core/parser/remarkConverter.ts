@@ -4,8 +4,8 @@ import type * as Md from 'mdast';
 import type { ContainerDirective } from 'mdast-util-directive';
 import type { MdxJsxFlowElement, MdxJsxTextElement } from 'mdast-util-mdx-jsx';
 import {
-  directiveElement,
-  mdxJsxElement as mdxJsxElementDefault,
+  processMDXJSXElement as mdxJsxElementDefault,
+  processDirectiveElement,
 } from './mdxProcessor';
 import type * as Plate from './plateHandler';
 
@@ -119,10 +119,10 @@ export const remarkToSlate = (
           content.position
         );
       case 'leafDirective': {
-        return directiveElement(content, field, imageCallback, raw);
+        return processDirectiveElement(content, field, imageCallback, raw);
       }
       case 'containerDirective': {
-        return directiveElement(content, field, imageCallback, raw);
+        return processDirectiveElement(content, field, imageCallback, raw);
       }
       default:
         throw new RichTextParseError(
@@ -224,7 +224,7 @@ export const remarkToSlate = (
           case 'leafDirective': {
             return {
               type: 'lic',
-              children: [directiveElement(child, field, imageCallback)],
+              children: [processDirectiveElement(child, field, imageCallback)],
             };
           }
           case 'code':

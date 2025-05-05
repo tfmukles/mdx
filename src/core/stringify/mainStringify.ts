@@ -12,8 +12,8 @@ import {
 import { Handlers, toMarkdown } from 'mdast-util-to-markdown';
 import { text } from 'mdast-util-to-markdown/lib/handle/text';
 import { stringifyProps } from './acornStringify';
-import { eat } from './markHandler';
-import { stringifyShortcode } from './shortcodeStringify';
+import { processInlineElements } from './markHandler';
+import { transformShortcodeToMarkdown } from './shortcodeStringify';
 
 declare module 'mdast' {
   interface StaticPhrasingContentMap {
@@ -31,7 +31,7 @@ declare module 'mdast' {
   }
 }
 
-export const stringifyMDX = (
+export const convertElementToMDX = (
   value: Plate.RootElement,
   field: RichTextField,
   imageCallback: (url: string) => string
@@ -50,8 +50,8 @@ export const stringifyMDX = (
       return value.children[0].value;
     }
   }
-  const tree = rootElement(value, field, imageCallback);
-  const res = toSitepinsMarkdown(tree, field);
+  const tree = createRootNode(value, field, imageCallback);
+  const res = convertASTToMarkdown(tree, field);
   const templatesWithMatchers = field.templates?.filter(
     (template: RichTextTemplate) => template.match
   );
@@ -61,7 +61,10 @@ export const stringifyMDX = (
       throw new Error('Global templates are not supported');
     }
     if (template.match) {
-      preprocessedString = stringifyShortcode(preprocessedString, template);
+      preprocessedString = transformShortcodeToMarkdown(
+        preprocessedString,
+        template
+      );
     }
   });
   return preprocessedString;
@@ -75,7 +78,7 @@ export type Pattern = {
   type: 'block' | 'leaf';
 };
 
-export const toSitepinsMarkdown = (tree: Md.Root, field: RichTextType) => {
+export const convertASTToMarkdown = (tree: Md.Root, field: RichTextType) => {
   const patterns: Pattern[] = [];
   field.templates?.forEach((template: RichTextTemplate) => {
     if (typeof template === 'string') {
@@ -127,14 +130,14 @@ export const toSitepinsMarkdown = (tree: Md.Root, field: RichTextType) => {
   });
 };
 
-export const rootElement = (
+export const createRootNode = (
   content: Plate.RootElement,
   field: RichTextType,
   imageCallback: (url: string) => string
 ): Md.Root => {
   const children: Md.Content[] = [];
   content.children?.forEach(child => {
-    const value = blockElement(child, field, imageCallback);
+    const value = createBlockNode(child, field, imageCallback);
 
     if (value) {
       children.push(value);
@@ -146,7 +149,7 @@ export const rootElement = (
   };
 };
 
-export const blockElement = (
+export const createBlockNode = (
   content: Plate.BlockElement,
   field: RichTextType,
   imageCallback: (url: string) => string
@@ -162,7 +165,7 @@ export const blockElement = (
         type: 'heading',
         // @ts-ignore Type 'number' is not assignable to type '1 | 2 | 3 | 4 | 5 | 6'
         depth: { h1: 1, h2: 2, h3: 3, h4: 4, h5: 5, h6: 6 }[content.type],
-        children: eat(content.children, field, imageCallback),
+        children: processInlineElements(content.children, field, imageCallback),
       };
     case 'p':
       // Ignore empty blocks
@@ -179,7 +182,7 @@ export const blockElement = (
       }
       return {
         type: 'paragraph',
-        children: eat(content.children, field, imageCallback),
+        children: processInlineElements(content.children, field, imageCallback),
       };
     case 'mermaid':
       return {
@@ -208,7 +211,7 @@ export const blockElement = (
               children: tableRow.tableCells.map(({ value }) => {
                 return {
                   type: 'tableCell',
-                  children: eat(
+                  children: processInlineElements(
                     value?.children?.at(0)?.children || [],
                     field,
                     imageCallback
@@ -263,7 +266,11 @@ export const blockElement = (
         children: [
           {
             type: 'paragraph',
-            children: eat(content.children, field, imageCallback),
+            children: processInlineElements(
+              content.children,
+              field,
+              imageCallback
+            ),
           },
         ],
       };
@@ -278,7 +285,7 @@ export const blockElement = (
         ordered: content.type === 'ol',
         spread: false,
         children: content.children.map(child =>
-          listItemElement(child, field, imageCallback)
+          createListItemNode(child, field, imageCallback)
         ),
       };
     case 'html': {
@@ -316,7 +323,7 @@ export const blockElement = (
             children: tableRow.children.map(tableCell => {
               return {
                 type: 'tableCell',
-                children: eat(
+                children: processInlineElements(
                   tableCell.children?.at(0)?.children || [],
                   field,
                   imageCallback
@@ -330,7 +337,8 @@ export const blockElement = (
       throw new Error(`BlockElement: ${content.type} is not yet supported`);
   }
 };
-const listItemElement = (
+
+export const createListItemNode = (
   content: Plate.ListItemElement,
   field: RichTextType,
   imageCallback: (url: string) => string
@@ -342,14 +350,15 @@ const listItemElement = (
       if (child.type === 'lic') {
         return {
           type: 'paragraph',
-          children: eat(child.children, field, imageCallback),
+          children: processInlineElements(child.children, field, imageCallback),
         };
       }
-      return blockContentElement(child, field, imageCallback);
+      return createBlockContentNode(child, field, imageCallback);
     }),
   };
 };
-const blockContentElement = (
+
+export const createBlockContentNode = (
   content: Plate.BlockElement,
   field: RichTextType,
   imageCallback: (url: string) => string
@@ -361,13 +370,13 @@ const blockContentElement = (
         children: content.children.map(child =>
           // FIXME: text nodes are probably passed in here by the rich text editor
           // @ts-ignore
-          blockContentElement(child, field, imageCallback)
+          createBlockContentNode(child, field, imageCallback)
         ),
       };
     case 'p':
       return {
         type: 'paragraph',
-        children: eat(content.children, field, imageCallback),
+        children: processInlineElements(content.children, field, imageCallback),
       };
     case 'ol':
     case 'ul':
@@ -376,7 +385,7 @@ const blockContentElement = (
         ordered: content.type === 'ol',
         spread: false,
         children: content.children.map(child =>
-          listItemElement(child, field, imageCallback)
+          createListItemNode(child, field, imageCallback)
         ),
       };
     default:
@@ -388,7 +397,7 @@ const blockContentElement = (
 
 export type Marks = 'strong' | 'emphasis' | 'inlineCode' | 'delete';
 
-export const getMarks = (content: Plate.InlineElement) => {
+export const extractTextMarks = (content: Plate.InlineElement) => {
   const marks: Marks[] = [];
   if (content.type !== 'text') {
     return [];

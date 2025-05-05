@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { stringifyShortcode } from './shortcodeStringify';
+import { transformShortcodeToMarkdown } from './shortcodeStringify';
 
 describe('stringifyShortcode', () => {
   describe('with keyed field', () => {
     it('parses attributes', () => {
-      const result = stringifyShortcode(
+      const result = transformShortcodeToMarkdown(
         '<signature foo="bar123"></signature>',
         {
           name: 'signature',
@@ -29,7 +29,7 @@ describe('stringifyShortcode', () => {
   describe('with unkeyed attributes', () => {
     describe('and no text value set', () => {
       it('excludes quotes', () => {
-        const result = stringifyShortcode('<signature></signature>', {
+        const result = transformShortcodeToMarkdown('<signature></signature>', {
           name: 'signature',
           label: 'Signature',
           match: {
@@ -48,7 +48,7 @@ describe('stringifyShortcode', () => {
       });
     });
     it('parses attributes', () => {
-      const result = stringifyShortcode(
+      const result = transformShortcodeToMarkdown(
         '<signature _value="bar123"></signature>',
         {
           name: 'signature',
@@ -72,21 +72,24 @@ describe('stringifyShortcode', () => {
 
   describe('with children', () => {
     it('parses children field', () => {
-      const result = stringifyShortcode('<signature># FOO\n##Bar</signature>', {
-        name: 'signature',
-        label: 'Signature',
-        match: {
-          start: '{{<',
-          end: '>}}',
-        },
-        fields: [
-          {
-            name: 'children',
-            label: 'children',
-            type: 'string',
+      const result = transformShortcodeToMarkdown(
+        '<signature># FOO\n##Bar</signature>',
+        {
+          name: 'signature',
+          label: 'Signature',
+          match: {
+            start: '{{<',
+            end: '>}}',
           },
-        ],
-      });
+          fields: [
+            {
+              name: 'children',
+              label: 'children',
+              type: 'string',
+            },
+          ],
+        }
+      );
       expect(result).toEqual(
         '{{< signature  >}}\n# FOO\n##Bar\n{{< /signature >}}'
       );

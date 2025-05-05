@@ -1,7 +1,7 @@
 import { Field, RichTextTemplate } from '@/types';
-import { replaceAll } from './mainParser';
+import { replaceAllOccurrences } from './mainParser';
 
-export function parseShortcode(
+export function transformShortcodeToJSX(
   preprocessedString: string,
   template: RichTextTemplate
 ) {
@@ -27,5 +27,5 @@ export function parseShortcode(
     unkeyedAttributes ? '[\'"]?(.*?)[\'"]?' : '(.*?)'
   }[\\s]*${match.end}${hasChildren ? endRegex : ''}`;
 
-  return replaceAll(preprocessedString, regex, replacement);
+  return replaceAllOccurrences(preprocessedString, regex, replacement);
 }

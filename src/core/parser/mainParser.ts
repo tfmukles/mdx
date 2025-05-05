@@ -8,12 +8,12 @@ import remarkGfm from 'remark-gfm';
 import remarkMdx, { type Root } from 'remark-mdx';
 import { parseMDX as parseMDXNext } from '../../next';
 import { directiveFromMarkdown } from '../extensions/sitepins-shortcodes/markdownParser';
-import { sitepinsDirective } from '../extensions/sitepins-shortcodes/sitepinsExtension';
+import { createSitepinsExtension } from '../extensions/sitepins-shortcodes/sitepinsExtension';
 import type * as Plate from './plateHandler';
 import { remarkToSlate, RichTextParseError } from './remarkConverter';
-import { parseShortcode } from './shortcodeManager';
+import { transformShortcodeToJSX } from './shortcodeManager';
 
-export const markdownToAst = (value: string, field: RichTextType) => {
+export const convertMarkdownToAST = (value: string, field: RichTextType) => {
   const patterns: Pattern[] = [];
   field.templates?.forEach((template: RichTextTemplate) => {
     if (typeof template === 'string') {
@@ -31,11 +31,12 @@ export const markdownToAst = (value: string, field: RichTextType) => {
     }
   });
   return fromMarkdown(value, {
-    extensions: [gfm(), sitepinsDirective(patterns)],
+    extensions: [gfm(), createSitepinsExtension(patterns)],
     mdastExtensions: [gfmFromMarkdown(), directiveFromMarkdown],
   });
 };
-export const mdxToAst = (value: string) => {
+
+export const convertMDXToAST = (value: string) => {
   return remark().use(remarkMdx).use(remarkGfm).parse(value);
 };
 
@@ -44,7 +45,7 @@ export const MDX_PARSE_ERROR_MSG =
 export const MDX_PARSE_ERROR_MSG_HTML =
   'Sitepins implements a more restrictive markdown variant and limited MDX functionality. <a href="https://docs.sitepins.com/editing/mdx/#differences-from-other-mdx-implementations" target="_blank" rel="noopener noreferrer">Learn More</a>';
 
-export const parseMDX = (
+export const processMDXContent = (
   value: string,
   field: RichTextType,
   imageCallback: (s: string) => string
@@ -69,11 +70,14 @@ export const parseMDX = (
       }
       if (template.match) {
         if (preprocessedString) {
-          preprocessedString = parseShortcode(preprocessedString, template);
+          preprocessedString = transformShortcodeToJSX(
+            preprocessedString,
+            template
+          );
         }
       }
     });
-    tree = mdxToAst(preprocessedString);
+    tree = convertMDXToAST(preprocessedString);
     if (tree) {
       return remarkToSlate(tree, field, imageCallback, value);
     } else {
@@ -81,13 +85,13 @@ export const parseMDX = (
     }
   } catch (e: any) {
     if (e instanceof RichTextParseError) {
-      return invalidMarkdown(e, value);
+      return createInvalidMarkdownNode(e, value);
     }
-    return invalidMarkdown(new RichTextParseError(e.message), value);
+    return createInvalidMarkdownNode(new RichTextParseError(e.message), value);
   }
 };
 
-export const invalidMarkdown = (
+export const createInvalidMarkdownNode = (
   e: RichTextParseError,
   value: string
 ): Plate.RootElement => {
@@ -109,7 +113,11 @@ export const invalidMarkdown = (
   };
 };
 
-export const replaceAll = (string: string, target: string, value: string) => {
+export const replaceAllOccurrences = (
+  string: string,
+  target: string,
+  value: string
+) => {
   const regex = new RegExp(target, 'g');
   return string.valueOf().replace(regex, value);
 };

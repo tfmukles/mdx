@@ -7,7 +7,7 @@ import { mdxJsxFromMarkdown } from '../shortcodes/mdast';
 import { mdxJsx, Options } from '../shortcodes/shortcodeIndex';
 import { getFieldPatterns } from '../util';
 
-export const fromMarkdown = (value: string, field: RichTextField) => {
+export const convertMarkdownToMDAST = (value: string, field: RichTextField) => {
   const patterns = getFieldPatterns(field);
   const acornDefault = acorn as unknown as Options['acorn'];
   const skipHTML = false;

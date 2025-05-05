@@ -1,4 +1,4 @@
-import { stringifyMDX } from '@/core/stringify/mainStringify';
+import { convertElementToMDX as stringifyMDX } from '@/core/stringify/mainStringify';
 import { expect, it } from 'vitest';
 import * as util from '../../util';
 import { field } from './field';

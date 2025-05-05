@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 
-export { parseMDX } from './parser';
+export { processMDXContent as parseMDX } from './parser';
 export { createMDXProcessor } from './processor';
 export { stringifyMDX } from './serializer';
 

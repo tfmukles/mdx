@@ -4,12 +4,12 @@
 
 */
 import { describe, expect, it } from 'vitest';
-import { parseShortcode } from './shortcodeManager';
+import { transformShortcodeToJSX } from './shortcodeManager';
 
 describe('parseShortcode', () => {
   describe('with keyed field', () => {
     it('parses attributes', () => {
-      const result = parseShortcode('{{< signature foo="bar123">}}', {
+      const result = transformShortcodeToJSX('{{< signature foo="bar123">}}', {
         name: 'signature',
         label: 'Signature',
         match: {
@@ -30,7 +30,7 @@ describe('parseShortcode', () => {
 
   describe('with unkeyed attributes', () => {
     it('parses attributes', () => {
-      const result = parseShortcode('{{< signature "bar123" >}}', {
+      const result = transformShortcodeToJSX('{{< signature "bar123" >}}', {
         name: 'signature',
         label: 'Signature',
         match: {
@@ -51,7 +51,7 @@ describe('parseShortcode', () => {
 
   describe('with children', () => {
     it('parses children field', () => {
-      const result = parseShortcode(
+      const result = transformShortcodeToJSX(
         '{{< signature >}}\n# FOO\n##Bar\n{{< /signature >}}',
         {
           name: 'signature',

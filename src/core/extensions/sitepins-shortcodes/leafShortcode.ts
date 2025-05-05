@@ -6,12 +6,12 @@ import { types } from 'micromark-util-symbol/types';
 import { values } from 'micromark-util-symbol/values';
 import type { Construct, State, Tokenizer } from 'micromark-util-types';
 import { factoryAttributes } from './attributesFactory';
-import { factoryName } from './nameFactory';
+import { createNameTokenizer } from './nameFactory';
 
 /**
  * Finds the key in values object that matches the given string
  */
-export const findValue = (string: string): string | null => {
+export const findValueByString = (string: string): string | null => {
   for (const [key, value] of Object.entries(values)) {
     if (value === string) {
       return key;
@@ -23,12 +23,14 @@ export const findValue = (string: string): string | null => {
 /**
  * Converts a character string to its corresponding code number
  */
-export const findCode = (string: string | undefined | null): number | null => {
+export const getCharacterCode = (
+  string: string | undefined | null
+): number | null => {
   if (!string) {
     return null;
   }
 
-  const lookup = findValue(string);
+  const lookup = findValueByString(string);
   if (!lookup) {
     return null;
   }
@@ -39,7 +41,7 @@ export const findCode = (string: string | undefined | null): number | null => {
 /**
  * Debug utility to print the name of a character code
  */
-export const printCode = (num: number): void => {
+export const debugPrintCharacterCode = (num: number): void => {
   for (const [key, value] of Object.entries(codes)) {
     if (value === num) {
       console.log(key);
@@ -52,7 +54,7 @@ export const printCode = (num: number): void => {
 /**
  * Creates a leaf directive construct based on the given pattern
  */
-export const directiveLeaf = (pattern: Pattern): Construct => {
+export const createLeafDirective = (pattern: Pattern): Construct => {
   const tokenizeDirectiveLeaf: Tokenizer = function (effects, ook, nnok) {
     const self = this;
     let startSequenceIndex = 1;
@@ -63,7 +65,7 @@ export const directiveLeaf = (pattern: Pattern): Construct => {
 
     const start: State = code => {
       const firstCharacter = pattern.start[0];
-      if (findCode(firstCharacter) === code) {
+      if (getCharacterCode(firstCharacter) === code) {
         effects.enter('directiveLeaf');
         effects.enter('directiveLeafFence');
         effects.enter('directiveLeafSequence');
@@ -75,7 +77,7 @@ export const directiveLeaf = (pattern: Pattern): Construct => {
 
     const sequenceOpen: State = code => {
       const nextCharacter = pattern.start[startSequenceIndex];
-      if (findCode(nextCharacter) === code) {
+      if (getCharacterCode(nextCharacter) === code) {
         effects.consume(code);
         startSequenceIndex++;
         return sequenceOpen;
@@ -93,7 +95,7 @@ export const directiveLeaf = (pattern: Pattern): Construct => {
       if (markdownSpace(code)) {
         return factorySpace(effects, factorName, types.whitespace)(code);
       }
-      return factoryName.call(
+      return createNameTokenizer.call(
         self,
         effects,
         afterName,
@@ -115,7 +117,7 @@ export const directiveLeaf = (pattern: Pattern): Construct => {
 
     const startAttributes: State = code => {
       const nextCharacter = pattern.end[endSequenceIndex];
-      if (findCode(nextCharacter) === code) {
+      if (getCharacterCode(nextCharacter) === code) {
         return afterAttributes(code);
       }
       return effects.attempt(
@@ -139,7 +141,7 @@ export const directiveLeaf = (pattern: Pattern): Construct => {
       if (code === codes.eof) {
         return nok;
       }
-      if (findCode(nextCharacter) === code) {
+      if (getCharacterCode(nextCharacter) === code) {
         effects.consume(code);
         endSequenceIndex++;
         return afterAttributes;

@@ -9,7 +9,7 @@ import type { MDXOptions, ParserResult } from '../types';
  * @param options - Parser configuration options
  * @returns The parsed AST and metadata
  */
-export function parseMDX(
+export function processMDXContent(
   content: string,
   options: MDXOptions = {}
 ): ParserResult {

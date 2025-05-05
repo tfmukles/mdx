@@ -1,5 +1,5 @@
 import type * as Plate from '@/core/parser/plateHandler';
-import { getMarks } from '@/core/stringify/mainStringify';
+import { extractTextMarks } from '@/core/stringify/mainStringify';
 import type { RichTextField } from '@/types';
 import type * as Md from 'mdast';
 import { stringifyPropsInline } from './acornStringify';
@@ -143,7 +143,7 @@ export const eat = (
       ...eat(content.slice(1), field, imageCallback),
     ];
   }
-  const marks = getMarks(first);
+  const marks = extractTextMarks(first);
 
   if (marks.length === 0) {
     if (first.linkifyTextNode) {
@@ -158,7 +158,7 @@ export const eat = (
   let nonMatchingSiblingIndex: number = 0;
   if (
     content.slice(1).every((content, index) => {
-      if (matches(marks, getMarks(content))) {
+      if (matches(marks, extractTextMarks(content))) {
         return true;
       } else {
         nonMatchingSiblingIndex = index;
@@ -176,7 +176,7 @@ export const eat = (
   marks.forEach(mark => {
     let count = 1;
     matchingSiblings.every((sibling, index) => {
-      if (getMarks(sibling).includes(mark)) {
+      if (extractTextMarks(sibling).includes(mark)) {
         count = index + 1;
         return true;
       }

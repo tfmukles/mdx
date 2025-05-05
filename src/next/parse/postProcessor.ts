@@ -4,14 +4,14 @@ import type { Root } from 'mdast';
 import { MdxJsxFlowElement, MdxJsxTextElement } from 'mdast-util-mdx-jsx';
 import { visit } from 'unist-util-visit';
 
-export const postProcessor = (
+export const transformMDASTToSlateAST = (
   tree: Root,
   field: RichTextField,
   imageCallback: (s: string) => string
 ) => {
   // Since were using our own interpretation of MDX, these props
   // don't adhere to the MDAST spec, casting as any
-  const addPropsToMdxFlow = (
+  const transformMDXAttributesToProps = (
     node: (MdxJsxFlowElement | MdxJsxTextElement) & {
       props: any;
       children: any;
@@ -28,7 +28,7 @@ export const postProcessor = (
     if (node.children.length) {
       let tree;
       if (node.type === 'mdxJsxTextElement') {
-        tree = postProcessor(
+        tree = transformMDASTToSlateAST(
           {
             type: 'root',
             children: [{ type: 'paragraph', children: node.children }],
@@ -37,7 +37,7 @@ export const postProcessor = (
           imageCallback
         );
       } else {
-        tree = postProcessor(
+        tree = transformMDASTToSlateAST(
           { type: 'root', children: node.children },
           field,
           imageCallback
@@ -51,8 +51,8 @@ export const postProcessor = (
     node.children = [{ type: 'text', text: '' }];
   };
 
-  visit(tree, 'mdxJsxFlowElement', addPropsToMdxFlow);
-  visit(tree, 'mdxJsxTextElement', addPropsToMdxFlow);
+  visit(tree, 'mdxJsxFlowElement', transformMDXAttributesToProps);
+  visit(tree, 'mdxJsxTextElement', transformMDXAttributesToProps);
 
   return remarkToSlate(tree, field, imageCallback, '', true);
 };

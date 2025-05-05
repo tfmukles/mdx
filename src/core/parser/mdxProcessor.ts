@@ -1,28 +1,28 @@
-import { toSitepinsMarkdown } from '@/core/stringify/mainStringify';
+import { convertASTToMarkdown } from '@/core/stringify/mainStringify';
 import type { Field, RichTextTemplate, RichTextType } from '@/types';
 import { ContainerDirective } from 'mdast-util-directive';
 import { LeafDirective } from 'mdast-util-directive/lib';
 import type { MdxJsxFlowElement, MdxJsxTextElement } from 'mdast-util-mdx-jsx';
 import { source } from 'unist-util-source';
-import { extractAttributes } from './acornEngine';
+import { parseJSXAttributes } from './acornEngine';
 import type * as Plate from './plateHandler';
 import { remarkToSlate, RichTextParseError } from './remarkConverter';
 
-export function mdxJsxElement(
+export function processMDXJSXElement(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   node: MdxJsxTextElement,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   field: RichTextType,
   imageCallback: (url: string) => string
 ): Plate.MdxInlineElement;
-export function mdxJsxElement(
+export function processMDXJSXElement(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   node: MdxJsxFlowElement,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   field: RichTextType,
   imageCallback: (url: string) => string
 ): Plate.MdxBlockElement;
-export function mdxJsxElement(
+export function processMDXJSXElement(
   node: MdxJsxTextElement | MdxJsxFlowElement,
   field: RichTextType,
   imageCallback: (url: string) => string
@@ -41,7 +41,7 @@ export function mdxJsxElement(
       throw new Error('Global templates not yet supported');
     }
     if (!template) {
-      const string = toSitepinsMarkdown(
+      const string = convertASTToMarkdown(
         { type: 'root', children: [node] },
         field
       );
@@ -52,7 +52,7 @@ export function mdxJsxElement(
       };
     }
 
-    const props = extractAttributes(
+    const props = parseJSXAttributes(
       node.attributes,
       template.fields,
       imageCallback
@@ -83,7 +83,7 @@ export function mdxJsxElement(
   }
 }
 
-export const directiveElement = (
+export const processDirectiveElement = (
   node: ContainerDirective | LeafDirective,
   field: RichTextType,
   imageCallback: (url: string) => string,

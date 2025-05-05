@@ -2,9 +2,9 @@ import type * as Plate from '@/core/parser/plateHandler';
 import type { RichTextType } from '@/types';
 import type * as Md from 'mdast';
 import { stringifyPropsInline } from './acornStringify';
-import { getMarks } from './mainStringify';
+import { extractTextMarks } from './mainStringify';
 
-const matches = (a: string[], b: string[]) => {
+const hasMatchingMarks = (a: string[], b: string[]) => {
   return a.some(v => b.includes(v));
 };
 
@@ -12,7 +12,7 @@ type InlineElementWithCallback = Plate.InlineElement & {
   linkifyTextNode?: (arg: Md.Text) => Md.Link;
 };
 
-const replaceLinksWithTextNodes = (content: Plate.InlineElement[]) => {
+const transformLinksToTextNodes = (content: Plate.InlineElement[]) => {
   const newItems: InlineElementWithCallback[] = [];
   content?.forEach(item => {
     if (item.type === 'a') {
@@ -46,7 +46,7 @@ const replaceLinksWithTextNodes = (content: Plate.InlineElement[]) => {
 /**
  * Links should be processed via 'linkifyTextNode', otherwise handle phrasing content
  */
-const inlineElementExceptLink = (
+const convertInlineElementToPhrasingContent = (
   content: InlineElementWithCallback,
   field: RichTextType,
   imageCallback: (url: string) => string
@@ -89,25 +89,25 @@ const inlineElementExceptLink = (
     default:
       // @ts-expect-error type is 'never'
       if (!content.type && typeof content.text === 'string') {
-        return text(content);
+        return createTextNode(content);
       }
       throw new Error(`InlineElement: ${content.type} is not supported`);
   }
 };
 
-const text = (content: { text: string }) => {
+const createTextNode = (content: { text: string }) => {
   return {
     type: 'text' as const,
     value: content.text,
   };
 };
 
-export const eat = (
+export const processInlineElements = (
   c: InlineElementWithCallback[],
   field: RichTextType,
   imageCallback: (url: string) => string
 ): Md.PhrasingContent[] => {
-  const content = replaceLinksWithTextNodes(c);
+  const content = transformLinksToTextNodes(c);
   const first = content[0];
   if (!first) {
     return [];
@@ -119,37 +119,40 @@ export const eat = (
           type: 'link',
           url: first.url,
           title: first.title,
-          children: eat(
+          children: processInlineElements(
             first.children,
             field,
             imageCallback
           ) as Md.StaticPhrasingContent[],
         },
-        ...eat(content.slice(1), field, imageCallback),
+        ...processInlineElements(content.slice(1), field, imageCallback),
       ];
     }
     // non-text nodes can't be merged. Eg. img, break. So process them and move on to the rest
     return [
-      inlineElementExceptLink(first, field, imageCallback),
-      ...eat(content.slice(1), field, imageCallback),
+      convertInlineElementToPhrasingContent(first, field, imageCallback),
+      ...processInlineElements(content.slice(1), field, imageCallback),
     ];
   }
-  const marks = getMarks(first);
+  const marks = extractTextMarks(first);
 
   if (marks.length === 0) {
     if (first.linkifyTextNode) {
       return [
-        first.linkifyTextNode(text(first)),
-        ...eat(content.slice(1), field, imageCallback),
+        first.linkifyTextNode(createTextNode(first)),
+        ...processInlineElements(content.slice(1), field, imageCallback),
       ];
     } else {
-      return [text(first), ...eat(content.slice(1), field, imageCallback)];
+      return [
+        createTextNode(first),
+        ...processInlineElements(content.slice(1), field, imageCallback),
+      ];
     }
   }
   let nonMatchingSiblingIndex: number = 0;
   if (
     content.slice(1).every((content, index) => {
-      if (matches(marks, getMarks(content))) {
+      if (hasMatchingMarks(marks, extractTextMarks(content))) {
         return true;
       } else {
         nonMatchingSiblingIndex = index;
@@ -167,7 +170,7 @@ export const eat = (
   marks.forEach(mark => {
     let count = 1;
     matchingSiblings.every((sibling, index) => {
-      if (getMarks(sibling).includes(mark)) {
+      if (extractTextMarks(sibling).includes(mark)) {
         count = index + 1;
         return true;
       }
@@ -185,7 +188,10 @@ export const eat = (
     }
   });
   if (!markToProcess) {
-    return [text(first), ...eat(content.slice(1), field, imageCallback)];
+    return [
+      createTextNode(first),
+      ...processInlineElements(content.slice(1), field, imageCallback),
+    ];
   }
   if (markToProcess === 'inlineCode') {
     if (nonMatchingSiblingIndex) {
@@ -197,28 +203,36 @@ export const eat = (
     };
     return [
       first.linkifyTextNode?.(node) ?? node,
-      ...eat(content.slice(nonMatchingSiblingIndex + 1), field, imageCallback),
+      ...processInlineElements(
+        content.slice(nonMatchingSiblingIndex + 1),
+        field,
+        imageCallback
+      ),
     ];
   }
 
   return [
     {
       type: markToProcess,
-      children: eat(
+      children: processInlineElements(
         [
           ...[first, ...matchingSiblings].map(sibling =>
-            cleanNode(sibling, markToProcess)
+            removeMarkFromNode(sibling, markToProcess)
           ),
         ],
         field,
         imageCallback
       ),
     },
-    ...eat(content.slice(nonMatchingSiblingIndex + 1), field, imageCallback),
+    ...processInlineElements(
+      content.slice(nonMatchingSiblingIndex + 1),
+      field,
+      imageCallback
+    ),
   ];
 };
 
-const cleanNode = (
+const removeMarkFromNode = (
   node: InlineElementWithCallback,
   mark: 'strong' | 'emphasis' | 'inlineCode' | 'delete' | null
 ): Plate.InlineElement => {
