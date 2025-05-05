@@ -1,7 +1,11 @@
-import { parseMDX } from "./core/parser";
-import { stringifyMDX } from "./core/stringify";
+/**
+ * SitePins MDX Parser and Serializer
+ * A modern MDX processing library for React applications
+ * @packageDocumentation
+ */
 
-// MDX types
-export * from "./core/parser/plate";
+export { parseMDX } from './parser';
+export { createMDXProcessor } from './processor';
+export { stringifyMDX } from './serializer';
 
-export { parseMDX, stringifyMDX };
+export type { MDXElement, MDXNode, MDXOptions, ParserResult } from './types';

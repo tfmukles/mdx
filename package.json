@@ -1,6 +1,7 @@
 {
   "name": "sitepins-mdx",
   "version": "1.0.0",
+  "description": "Modern MDX processing library for React applications",
   "typings": "./dist/index.d.ts",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -17,62 +18,41 @@
     }
   },
   "scripts": {
-    "types": "tsc",
     "build": "vite build",
+    "dev": "vite build --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "coverage": "vitest run --coverage",
-    "dev": "vite build --watch",
-    "clean": "rm -rf dist"
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist",
+    "prepare": "npm run build"
   },
   "dependencies": {
-    "acorn": "8.8.2",
-    "ccount": "2.0.1",
-    "estree-util-is-identifier-name": "2.1.0",
-    "lodash.flatten": "4.4.0",
-    "mdast-util-compact": "4.1.1",
-    "mdast-util-directive": "2.2.4",
-    "mdast-util-from-markdown": "1.3.0",
-    "mdast-util-gfm": "2.0.2",
-    "mdast-util-mdx-jsx": "2.1.2",
-    "mdast-util-to-markdown": "1.5.0",
-    "micromark-extension-gfm": "2.0.3",
-    "micromark-factory-mdx-expression": "1.0.7",
-    "micromark-factory-space": "1.0.0",
-    "micromark-factory-whitespace": "1.0.0",
-    "micromark-util-character": "1.1.0",
-    "micromark-util-symbol": "1.0.1",
-    "micromark-util-types": "1.0.2",
-    "parse-entities": "4.0.1",
-    "prettier": "^2.8.8",
-    "remark": "14.0.2",
-    "remark-gfm": "^2.0.0",
-    "remark-mdx": "2.3.0",
-    "stringify-entities": "4.0.3",
-    "unist-util-source": "4.0.2",
-    "unist-util-stringify-position": "3.0.3",
-    "unist-util-visit": "4.1.2",
-    "uvu": "0.5.6",
-    "vfile-message": "3.1.4"
+    "mdast-util-from-markdown": "^2.0.0",
+    "mdast-util-mdx": "^2.0.0",
+    "mdast-util-gfm": "^2.0.0",
+    "remark-parse": "^10.0.0",
+    "remark-mdx": "^2.0.0",
+    "remark-gfm": "^3.0.0",
+    "unified": "^10.0.0",
+    "unist-util-visit": "^4.0.0",
+    "vfile": "^5.0.0"
   },
   "devDependencies": {
-    "@types/estree": "1.0.0",
-    "@types/jest": "^29.5.12",
-    "@types/lodash.flatten": "^4.4.9",
-    "@types/mdast": "^3.0.15",
-    "@types/node": "^22.13.1",
-    "@types/prettier": "^2.7.3",
-    "@types/unist": "^2.0.11",
-    "jest-file-snapshot": "^0.5.0",
-    "tsup": "^8.4.0",
-    "typescript": "^5.7.3",
-    "vite": "^4.5.9",
-    "vite-plugin-dts": "^3.7.2",
-    "vitest": "^0.32.4"
-  },
-  "private": false,
-  "publishConfig": {
-    "access": "public"
+    "@types/node": "^18.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.0.0",
+    "@typescript-eslint/parser": "^5.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-prettier": "^8.0.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "prettier": "^2.0.0",
+    "rimraf": "^3.0.0",
+    "typescript": "^4.0.0",
+    "vite": "^4.0.0",
+    "vite-plugin-dts": "^2.0.0",
+    "vitest": "^0.32.0"
   },
   "peerDependencies": {
     "react": "^16.0.0 || ^17.0.0 || ^18.0.0"
@@ -81,5 +61,22 @@
     "react": {
       "optional": true
     }
-  }
+  },
+  "keywords": [
+    "mdx",
+    "markdown",
+    "react",
+    "parser",
+    "compiler"
+  ],
+  "author": "SitePins",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sitepins/mdx"
+  },
+  "bugs": {
+    "url": "https://github.com/sitepins/mdx/issues"
+  },
+  "homepage": "https://github.com/sitepins/mdx#readme"
 }
