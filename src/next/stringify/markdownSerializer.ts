@@ -3,7 +3,7 @@ import type * as Md from 'mdast';
 import { gfmToMarkdown } from 'mdast-util-gfm';
 import { Handlers, toMarkdown } from 'mdast-util-to-markdown';
 import { text } from 'mdast-util-to-markdown/lib/handle/text';
-import { mdxJsxToMarkdown } from '../shortcodes/mdast';
+import { convertMarkdownToMDXJSX } from '../shortcodes/mdast';
 import { getFieldPatterns } from '../util';
 
 export const toSitepinsMarkdown = (tree: Md.Root, field: RichTextField) => {
@@ -39,7 +39,7 @@ export const toSitepinsMarkdown = (tree: Md.Root, field: RichTextField) => {
     return text(node, parent, context, safeOptions);
   };
   return toMarkdown(tree, {
-    extensions: [mdxJsxToMarkdown({ patterns }), gfmToMarkdown()],
+    extensions: [convertMarkdownToMDXJSX({ patterns }), gfmToMarkdown()],
     listItemIndent: 'one',
     handlers,
   });

@@ -1,4 +1,4 @@
-import { findCode } from '@/next/shortcodes/lib/shortcodeUtils';
+import { lookupSymbolCode } from '@/next/shortcodes/lib/shortcodeUtils';
 import { asciiAlpha, asciiAlphanumeric } from 'micromark-util-character';
 import { codes } from 'micromark-util-symbol/codes';
 import type { Effects, State, TokenizeContext } from 'micromark-util-types';
@@ -53,7 +53,7 @@ export function createNameTokenizer(
 
   function isValidPatternCharacter(code: number, index: number): boolean {
     const character = patternName[index];
-    return asciiAlpha(code) && findCode(character) === code;
+    return asciiAlpha(code) && lookupSymbolCode(character) === code;
   }
 
   return start;

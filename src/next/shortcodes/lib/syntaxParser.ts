@@ -1,8 +1,8 @@
 import type { Acorn, AcornOptions } from 'micromark-factory-mdx-expression';
 import type { Construct, Extension } from 'micromark-util-types';
-import { jsxFlow } from './jsxFlowHandler';
-import { jsxText } from './jsxTextHandler';
-import { findCode } from './shortcodeUtils';
+import { createJSXFlowTokenizer } from './jsxFlowHandler';
+import { createJSXTextTokenizer } from './jsxTextHandler';
+import { lookupSymbolCode } from './shortcodeUtils';
 
 export type Pattern = {
   start: string;
@@ -21,7 +21,7 @@ export type Options = {
   skipHTML?: boolean;
 };
 
-export function mdxJsx(options: Options = {}): Extension {
+export function createMDXJSXExtension(options: Options = {}): Extension {
   const acorn = options.acorn;
   /** @type {AcornOptions|undefined} */
   let acornOptions: AcornOptions | undefined;
@@ -49,7 +49,7 @@ export function mdxJsx(options: Options = {}): Extension {
   const flowRules: Record<string, Construct[]> = {};
   const textRules: Record<string, Construct[]> = {};
   patterns.forEach(pattern => {
-    const firstCharacter = findCode(pattern.start[0])?.toString();
+    const firstCharacter = lookupSymbolCode(pattern.start[0])?.toString();
     if (!firstCharacter) {
       return;
     }
@@ -59,17 +59,41 @@ export function mdxJsx(options: Options = {}): Extension {
       flowRules[firstCharacter] = existing
         ? [
             ...existing,
-            jsxFlow(acorn, acornOptions, options.addResult, pattern),
+            createJSXFlowTokenizer(
+              acorn,
+              acornOptions,
+              options.addResult,
+              pattern
+            ),
           ]
-        : [jsxFlow(acorn, acornOptions, options.addResult, pattern)];
+        : [
+            createJSXFlowTokenizer(
+              acorn,
+              acornOptions,
+              options.addResult,
+              pattern
+            ),
+          ];
     } else {
       const existing = textRules[firstCharacter];
       textRules[firstCharacter] = existing
         ? [
             ...existing,
-            jsxText(acorn, acornOptions, options.addResult, pattern),
+            createJSXTextTokenizer(
+              acorn,
+              acornOptions,
+              options.addResult,
+              pattern
+            ),
           ]
-        : [jsxText(acorn, acornOptions, options.addResult, pattern)];
+        : [
+            createJSXTextTokenizer(
+              acorn,
+              acornOptions,
+              options.addResult,
+              pattern
+            ),
+          ];
     }
   });
 

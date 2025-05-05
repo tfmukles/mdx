@@ -1,7 +1,7 @@
 import { codes } from 'micromark-util-symbol/codes';
 import { values } from 'micromark-util-symbol/values';
 
-const findValue = (string: string): string | null => {
+const lookupSymbolValue = (string: string): string | null => {
   let lookupValue: string | null = null;
   Object.entries(values).forEach(([key, value]) => {
     if (value === string) {
@@ -10,11 +10,14 @@ const findValue = (string: string): string | null => {
   });
   return lookupValue;
 };
-export const findCode = (string: string | undefined | null): number | null => {
+
+export const lookupSymbolCode = (
+  string: string | undefined | null
+): number | null => {
   if (!string) {
     return null;
   }
-  const lookup = findValue(string);
+  const lookup = lookupSymbolValue(string);
   let lookupValue: number | null = null;
   if (lookup) {
     Object.entries(codes).forEach(([key, value]) => {
@@ -25,7 +28,8 @@ export const findCode = (string: string | undefined | null): number | null => {
   }
   return lookupValue;
 };
-export const printCode = (num: number) => {
+
+export const printSymbolCode = (num: number) => {
   let lookupValue: string | null = null;
   Object.entries(codes).forEach(([key, value]) => {
     if (value === num) {
@@ -34,7 +38,8 @@ export const printCode = (num: number) => {
   });
   console.log(lookupValue);
 };
-export const logSelf = (item: any) => {
+
+export const logTokenEvents = (item: any) => {
   console.log(
     item.events.map((e: any) => {
       return `${e[0]} - ${e[1].type} | ${item.sliceSerialize(e[1])}`;

@@ -4,16 +4,16 @@ import { markdownLineEndingOrSpace } from 'micromark-util-character';
 import { codes } from 'micromark-util-symbol/codes.js';
 import { types } from 'micromark-util-symbol/types.js';
 import type { Construct, State, Tokenizer } from 'micromark-util-types';
-import { findCode } from './shortcodeUtils';
+import { lookupSymbolCode } from './shortcodeUtils';
 import { factoryTag } from './tagFactory';
 
-export const jsxFlow: (
+export const createJSXFlowTokenizer: (
   acorn: Acorn | undefined,
   acornOptions: AcornOptions | undefined,
   addResult: boolean | undefined,
   pattern: any
 ) => Construct = function (acorn, acornOptions, addResult, pattern) {
-  const tokenizeJsxFlow: Tokenizer = function (effects, ok, nok) {
+  const processJSXFlowTokens: Tokenizer = function (effects, ok, nok) {
     // eslint-disable-next-line
     const self = this;
 
@@ -57,7 +57,7 @@ export const jsxFlow: (
     };
 
     const after: State = function (code) {
-      const character = findCode(pattern.start[0]);
+      const character = lookupSymbolCode(pattern.start[0]);
       if (code === character) {
         return start(code);
       }
@@ -73,7 +73,7 @@ export const jsxFlow: (
     return start;
   };
   return {
-    tokenize: tokenizeJsxFlow,
+    tokenize: processJSXFlowTokens,
     concrete: true,
   };
 };

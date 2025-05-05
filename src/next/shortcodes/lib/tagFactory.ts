@@ -24,7 +24,7 @@ import type {
 } from 'micromark-util-types';
 import { ok as assert } from 'uvu/assert';
 import { VFileMessage } from 'vfile-message';
-import { findCode } from './shortcodeUtils';
+import { lookupSymbolCode } from './shortcodeUtils';
 import { Pattern } from './syntaxParser';
 
 export function factoryTag(
@@ -86,7 +86,7 @@ export function factoryTag(
   };
 
   const tagOpenerSequence: State = function (code) {
-    const character = findCode(pattern.start[tagOpenerIndex]);
+    const character = lookupSymbolCode(pattern.start[tagOpenerIndex]);
     if (code === character) {
       effects.consume(code);
       if (pattern.start.length - 1 === tagOpenerIndex) {
@@ -120,7 +120,7 @@ export function factoryTag(
     if (
       code !== codes.eof &&
       idStart(code) &&
-      findCode(pattern.name[0]) === code
+      lookupSymbolCode(pattern.name[0]) === code
     ) {
       effects.enter(tagNameType);
       effects.enter(tagNamePrimaryType);
@@ -149,7 +149,7 @@ export function factoryTag(
   const primaryName: State = function (code) {
     const nextCharacterInName = pattern.name[nameIndex];
     const nextCodeInName = nextCharacterInName
-      ? findCode(nextCharacterInName)
+      ? lookupSymbolCode(nextCharacterInName)
       : null;
     if (nextCodeInName === code) {
       effects.consume(code);
@@ -163,7 +163,7 @@ export function factoryTag(
       code === codes.slash ||
       code === codes.colon ||
       code === codes.greaterThan ||
-      code === findCode(pattern.end[0]) ||
+      code === lookupSymbolCode(pattern.end[0]) ||
       markdownLineEndingOrSpace(code) ||
       unicodeWhitespace(code)
     ) {
@@ -211,9 +211,9 @@ export function factoryTag(
 
     // End pattern
     // This is triggerd for closing tags too
-    if (code === findCode(pattern.end[0])) {
+    if (code === lookupSymbolCode(pattern.end[0])) {
       const tagCloserSequence: State = function (code) {
-        const character = findCode(pattern.end[tagCloserIndex]);
+        const character = lookupSymbolCode(pattern.end[tagCloserIndex]);
         if (code === character) {
           if (pattern.end.length - 1 === tagCloserIndex) {
             effects.exit(tagNameType);
@@ -414,7 +414,7 @@ export function factoryTag(
       effects.exit(tagNameType);
       return beforeAttribute(code);
     }
-    if (code === findCode(pattern.end)) {
+    if (code === lookupSymbolCode(pattern.end)) {
       effects.exit(tagNameType);
       return beforeAttribute(code);
     }
@@ -428,9 +428,9 @@ export function factoryTag(
   };
 
   const beforeAttribute: State = function (code) {
-    if (code === findCode(pattern.end[0])) {
+    if (code === lookupSymbolCode(pattern.end[0])) {
       const tagCloserSequence: State = function (code) {
-        const character = findCode(pattern.end[tagCloserIndex]);
+        const character = lookupSymbolCode(pattern.end[tagCloserIndex]);
         if (code === character) {
           if (pattern.end.length - 1 === tagCloserIndex) {
             return beforeAttribute(code);
@@ -457,7 +457,7 @@ export function factoryTag(
       }
     }
     // TODO: test this against `pattern.end`
-    if (code === findCode(pattern.end[pattern.end.length - 1])) {
+    if (code === lookupSymbolCode(pattern.end[pattern.end.length - 1])) {
       if (pattern.leaf) {
         effects.enter(tagSelfClosingMarker);
         effects.exit(tagSelfClosingMarker);
@@ -771,7 +771,7 @@ export function factoryTag(
   // Right after the slash on a tag, e.g., `<asd /`.
   const selfClosing: State = function (code) {
     // End of tag.
-    if (code === findCode(pattern.end[pattern.end.length - 1])) {
+    if (code === lookupSymbolCode(pattern.end[pattern.end.length - 1])) {
       return tagEnd(code);
     }
 

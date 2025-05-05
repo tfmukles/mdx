@@ -48,7 +48,7 @@ declare module 'mdast-util-from-markdown' {
   }
 }
 
-export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
+export function convertMDXJSXToMarkdown({ patterns }: { patterns: Pattern[] }) {
   const buffer: FromMarkdownHandle = function () {
     this.buffer();
   };
@@ -461,15 +461,7 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   };
 }
 
-/**
- * Create an extension for `mdast-util-to-markdown` to enable MDX JSX.
- *
- * This extension configures `mdast-util-to-markdown` with
- * `options.fences: true` and `options.resourceLink: true` too, do not
- * overwrite them!
- *
- */
-export const mdxJsxToMarkdown = function (
+export const convertMarkdownToMDXJSX = function (
   options: Options & {
     printWidth?: number;
     quoteSmart?: boolean;

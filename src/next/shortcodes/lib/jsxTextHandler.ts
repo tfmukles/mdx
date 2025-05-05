@@ -2,13 +2,13 @@ import type { Acorn, AcornOptions } from 'micromark-factory-mdx-expression';
 import type { Construct, Tokenizer } from 'micromark-util-types';
 import { factoryTag } from './tagFactory';
 
-export const jsxText: (
+export const createJSXTextTokenizer: (
   acorn: Acorn | undefined,
   acornOptions: AcornOptions | undefined,
   addResult: boolean | undefined,
   pattern: any
 ) => Construct = function (acorn, acornOptions, addResult, pattern) {
-  const tokenizeJsxText: Tokenizer = function (effects, ok, nok) {
+  const processJSXTextTokens: Tokenizer = function (effects, ok, nok) {
     // eslint-disable-next-line
     const self = this;
     return factoryTag.call(
@@ -48,5 +48,5 @@ export const jsxText: (
       pattern
     );
   };
-  return { tokenize: tokenizeJsxText };
+  return { tokenize: processJSXTextTokens };
 };

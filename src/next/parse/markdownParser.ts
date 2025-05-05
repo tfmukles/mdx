@@ -3,7 +3,7 @@ import * as acorn from 'acorn';
 import { fromMarkdown as mdastFromMarkdown } from 'mdast-util-from-markdown';
 import { gfmFromMarkdown } from 'mdast-util-gfm';
 import { gfm } from 'micromark-extension-gfm';
-import { mdxJsxFromMarkdown } from '../shortcodes/mdast';
+import { convertMDXJSXToMarkdown } from '../shortcodes/mdast';
 import { mdxJsx, Options } from '../shortcodes/shortcodeIndex';
 import { getFieldPatterns } from '../util';
 
@@ -17,7 +17,7 @@ export const convertMarkdownToMDAST = (value: string, field: RichTextField) => {
       gfm(),
       mdxJsx({ acorn: acornDefault, patterns, addResult: true, skipHTML }),
     ],
-    mdastExtensions: [gfmFromMarkdown(), mdxJsxFromMarkdown({ patterns })],
+    mdastExtensions: [gfmFromMarkdown(), convertMDXJSXToMarkdown({ patterns })],
   });
 
   return tree;
