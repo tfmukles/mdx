@@ -1,7 +1,11 @@
-import { RichTextField } from "@/types";
+import type { RichTextField } from '../../../types';
 
-export const field: RichTextField = {
-  name: "body",
-  type: "rich-text",
-  parser: { type: "markdown" },
+const field: RichTextField = {
+  type: 'rich-text',
+  name: 'content',
+  parser: {
+    type: 'markdown',
+  },
 };
+
+export default field;

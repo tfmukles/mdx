@@ -1,12 +1,12 @@
-import type { RichTextType } from "@/types";
-import { ContainerDirective } from "mdast-util-directive";
-import { LeafDirective } from "mdast-util-directive/lib";
-import type { MdxJsxFlowElement, MdxJsxTextElement } from "mdast-util-mdx-jsx";
-import { source } from "unist-util-source";
-import { toSitepinsMarkdown } from "../stringify";
-import { extractAttributes } from "./acorn";
-import type * as Plate from "./plate";
-import { remarkToSlate, RichTextParseError } from "./remarkToPlate";
+import type { Field, RichTextTemplate, RichTextType } from '@/types';
+import { ContainerDirective } from 'mdast-util-directive';
+import { LeafDirective } from 'mdast-util-directive/lib';
+import type { MdxJsxFlowElement, MdxJsxTextElement } from 'mdast-util-mdx-jsx';
+import { source } from 'unist-util-source';
+import { toSitepinsMarkdown } from '../stringify';
+import { extractAttributes } from './acorn';
+import type * as Plate from './plate';
+import { remarkToSlate, RichTextParseError } from './remarkToPlate';
 
 export function mdxJsxElement(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -32,23 +32,23 @@ export function mdxJsxElement(
   | Plate.HTMLInlineElement
   | Plate.HTMLElement {
   try {
-    const template = field.templates?.find((template) => {
+    const template = field.templates?.find((template: RichTextTemplate) => {
       const templateName =
-        typeof template === "string" ? template : template.name;
+        typeof template === 'string' ? template : template.name;
       return templateName === node.name;
     });
-    if (typeof template === "string") {
-      throw new Error("Global templates not yet supported");
+    if (typeof template === 'string') {
+      throw new Error('Global templates not yet supported');
     }
     if (!template) {
       const string = toSitepinsMarkdown(
-        { type: "root", children: [node] },
+        { type: 'root', children: [node] },
         field
       );
       return {
-        type: node.type === "mdxJsxFlowElement" ? "html" : "html_inline",
+        type: node.type === 'mdxJsxFlowElement' ? 'html' : 'html_inline',
         value: string.trim(),
-        children: [{ type: "text", text: "" }],
+        children: [{ type: 'text', text: '' }],
       };
     }
 
@@ -58,13 +58,13 @@ export function mdxJsxElement(
       imageCallback
     );
     const childField = template.fields.find(
-      (field) => field.name === "children"
+      (field: Field) => field.name === 'children'
     );
     if (childField) {
-      if (childField.type === "rich-text") {
-        if (node.type === "mdxJsxTextElement") {
+      if (childField.type === 'rich-text') {
+        if (node.type === 'mdxJsxTextElement') {
           // @ts-ignore FIXME: frontend rich-text needs top-level elements to be wrapped in `paragraph`
-          node.children = [{ type: "paragraph", children: node.children }];
+          node.children = [{ type: 'paragraph', children: node.children }];
         }
         props.children = remarkToSlate(node, childField, imageCallback);
       }
@@ -72,7 +72,7 @@ export function mdxJsxElement(
     return {
       type: node.type,
       name: node.name,
-      children: [{ type: "text", text: "" }],
+      children: [{ type: 'text', text: '' }],
       props,
     };
   } catch (e) {
@@ -90,44 +90,46 @@ export const directiveElement = (
   raw?: string
 ): Plate.BlockElement | Plate.ParagraphElement => {
   let template;
-  template = field.templates?.find((template) => {
+  template = field.templates?.find((template: RichTextTemplate) => {
     const templateName =
-      typeof template === "string" ? template : template.name;
+      typeof template === 'string' ? template : template.name;
     return templateName === node.name;
   });
-  if (typeof template === "string") {
-    throw new Error("Global templates not yet supported");
+  if (typeof template === 'string') {
+    throw new Error('Global templates not yet supported');
   }
   if (!template) {
-    template = field.templates?.find((template) => {
+    template = field.templates?.find((template: RichTextTemplate) => {
       const templateName = template?.match?.name;
       return templateName === node.name;
     });
   }
   if (!template) {
     return {
-      type: "p",
-      children: [{ type: "text", text: source(node, raw || "") || "" }],
+      type: 'p',
+      children: [{ type: 'text', text: source(node, raw || '') || '' }],
     };
   }
-  if (typeof template === "string") {
+  if (typeof template === 'string') {
     throw new Error(`Global templates not supported`);
   }
   const props = (node.attributes || {}) as typeof node.attributes & {
     children: Plate.RootElement | undefined;
   };
-  const childField = template.fields.find((field) => field.name === "children");
+  const childField = template.fields.find(
+    (field: Field) => field.name === 'children'
+  );
   if (childField) {
-    if (childField.type === "rich-text") {
-      if (node.type === "containerDirective") {
+    if (childField.type === 'rich-text') {
+      if (node.type === 'containerDirective') {
         props.children = remarkToSlate(node, childField, imageCallback, raw);
       }
     }
   }
   return {
-    type: "mdxJsxFlowElement",
+    type: 'mdxJsxFlowElement',
     name: template.name,
     props: props,
-    children: [{ type: "text", text: "" }],
+    children: [{ type: 'text', text: '' }],
   };
 };

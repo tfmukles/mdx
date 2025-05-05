@@ -1,22 +1,22 @@
-import type { RichTextType } from "@/types";
-import { fromMarkdown } from "mdast-util-from-markdown";
-import { gfmFromMarkdown } from "mdast-util-gfm";
-import { gfm } from "micromark-extension-gfm";
-import { remark } from "remark";
-import remarkGfm from "remark-gfm";
-import remarkMdx, { type Root } from "remark-mdx";
-import { parseMDX as parseMDXNext } from "../../next";
-import { sitepinsDirective } from "../extensions/sitepins-shortcodes/extension";
-import { directiveFromMarkdown } from "../extensions/sitepins-shortcodes/from-markdown";
-import type { Pattern } from "../stringify";
-import { parseShortcode } from "./parseShortcode";
-import type * as Plate from "./plate";
-import { remarkToSlate, RichTextParseError } from "./remarkToPlate";
+import type { Field, RichTextTemplate, RichTextType } from '@/types';
+import { fromMarkdown } from 'mdast-util-from-markdown';
+import { gfmFromMarkdown } from 'mdast-util-gfm';
+import { gfm } from 'micromark-extension-gfm';
+import { remark } from 'remark';
+import remarkGfm from 'remark-gfm';
+import remarkMdx, { type Root } from 'remark-mdx';
+import { parseMDX as parseMDXNext } from '../../next';
+import { sitepinsDirective } from '../extensions/sitepins-shortcodes/extension';
+import { directiveFromMarkdown } from '../extensions/sitepins-shortcodes/from-markdown';
+import type { Pattern } from '../stringify';
+import { parseShortcode } from './parseShortcode';
+import type * as Plate from './plate';
+import { remarkToSlate, RichTextParseError } from './remarkToPlate';
 
 export const markdownToAst = (value: string, field: RichTextType) => {
   const patterns: Pattern[] = [];
-  field.templates?.forEach((template) => {
-    if (typeof template === "string") {
+  field.templates?.forEach((template: RichTextTemplate) => {
+    if (typeof template === 'string') {
       return;
     }
     if (template && template.match) {
@@ -24,9 +24,9 @@ export const markdownToAst = (value: string, field: RichTextType) => {
         ...template.match,
         name: template.match?.name || template.name,
         templateName: template.name,
-        type: template.fields.find((f) => f.name === "children")
-          ? "block"
-          : "leaf",
+        type: template.fields.find((f: Field) => f.name === 'children')
+          ? 'block'
+          : 'leaf',
       });
     }
   });
@@ -40,7 +40,7 @@ export const mdxToAst = (value: string) => {
 };
 
 export const MDX_PARSE_ERROR_MSG =
-  "Sitepins implements a more restrictive markdown variant and limited MDX functionality. https://docs.sitepins.com/editing/mdx/#differences-from-other-mdx-implementations";
+  'Sitepins implements a more restrictive markdown variant and limited MDX functionality. https://docs.sitepins.com/editing/mdx/#differences-from-other-mdx-implementations';
 export const MDX_PARSE_ERROR_MSG_HTML =
   'Sitepins implements a more restrictive markdown variant and limited MDX functionality. <a href="https://docs.sitepins.com/editing/mdx/#differences-from-other-mdx-implementations" target="_blank" rel="noopener noreferrer">Learn More</a>';
 
@@ -50,22 +50,22 @@ export const parseMDX = (
   imageCallback: (s: string) => string
 ): Plate.RootElement => {
   if (!value) {
-    return { type: "root", children: [] };
+    return { type: 'root', children: [] };
   }
   let tree: Root | null;
 
   try {
-    if (field.parser?.type === "markdown") {
+    if (field.parser?.type === 'markdown') {
       // @ts-ignore
       return parseMDXNext(value, field, imageCallback);
     }
     let preprocessedString = value;
     const templatesWithMatchers = field.templates?.filter(
-      (template) => template.match
+      (template: RichTextTemplate) => template.match
     );
-    templatesWithMatchers?.forEach((template) => {
-      if (typeof template === "string") {
-        throw new Error("Global templates are not supported");
+    templatesWithMatchers?.forEach((template: RichTextTemplate) => {
+      if (typeof template === 'string') {
+        throw new Error('Global templates are not supported');
       }
       if (template.match) {
         if (preprocessedString) {
@@ -77,7 +77,7 @@ export const parseMDX = (
     if (tree) {
       return remarkToSlate(tree, field, imageCallback, value);
     } else {
-      return { type: "root", children: [] };
+      return { type: 'root', children: [] };
     }
   } catch (e: any) {
     if (e instanceof RichTextParseError) {
@@ -93,16 +93,16 @@ export const invalidMarkdown = (
 ): Plate.RootElement => {
   const extra: Record<string, unknown> = {};
   if (e.position && Object.keys(e.position).length) {
-    extra["position"] = e.position;
+    extra['position'] = e.position;
   }
   return {
-    type: "root",
+    type: 'root',
     children: [
       {
-        type: "invalid_markdown",
+        type: 'invalid_markdown',
         value,
         message: e.message || `Error parsing markdown ${MDX_PARSE_ERROR_MSG}`,
-        children: [{ type: "text", text: "" }],
+        children: [{ type: 'text', text: '' }],
         ...extra,
       },
     ],
@@ -110,6 +110,6 @@ export const invalidMarkdown = (
 };
 
 export const replaceAll = (string: string, target: string, value: string) => {
-  const regex = new RegExp(target, "g");
+  const regex = new RegExp(target, 'g');
   return string.valueOf().replace(regex, value);
 };
