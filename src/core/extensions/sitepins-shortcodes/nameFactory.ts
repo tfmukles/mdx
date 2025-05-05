@@ -1,7 +1,7 @@
-import { asciiAlpha, asciiAlphanumeric } from "micromark-util-character";
-import { codes } from "micromark-util-symbol/codes";
-import type { Effects, State, TokenizeContext } from "micromark-util-types";
-import { findCode } from "./shortcode-leaf";
+import { asciiAlpha, asciiAlphanumeric } from 'micromark-util-character';
+import { codes } from 'micromark-util-symbol/codes';
+import type { Effects, State, TokenizeContext } from 'micromark-util-types';
+import { findCode } from './leafShortcode';
 
 export function factoryName(
   this: TokenizeContext,

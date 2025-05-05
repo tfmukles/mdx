@@ -1,8 +1,8 @@
-import { jsxText } from './jsx-text';
-import { jsxFlow } from './jsx-flow';
-import { findCode } from './util';
-import type { Construct, Extension } from 'micromark-util-types';
 import type { Acorn, AcornOptions } from 'micromark-factory-mdx-expression';
+import type { Construct, Extension } from 'micromark-util-types';
+import { jsxFlow } from './jsxFlowHandler';
+import { jsxText } from './jsxTextHandler';
+import { findCode } from './shortcodeUtils';
 
 export type Pattern = {
   start: string;
@@ -48,7 +48,7 @@ export function mdxJsx(options: Options = {}): Extension {
 
   const flowRules: Record<string, Construct[]> = {};
   const textRules: Record<string, Construct[]> = {};
-  patterns.forEach((pattern) => {
+  patterns.forEach(pattern => {
     const firstCharacter = findCode(pattern.start[0])?.toString();
     if (!firstCharacter) {
       return;

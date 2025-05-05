@@ -1,45 +1,46 @@
-import type { Directive, LeafDirective, TextDirective } from './types';
+import { Pattern } from '@/core/stringify/mainStringify';
 import type { BlockContent, DefinitionContent, Paragraph } from 'mdast';
+import { ConstructName } from 'mdast-util-directive/lib';
 import type {
-  Handle as ToMarkdownHandle,
   Options as ToMarkdownExtension,
+  Handle as ToMarkdownHandle,
 } from 'mdast-util-to-markdown';
-import { stringifyEntitiesLight } from 'stringify-entities';
+import { Context as State } from 'mdast-util-to-markdown';
+import { checkQuote } from 'mdast-util-to-markdown/lib/util/check-quote';
 import { containerFlow } from 'mdast-util-to-markdown/lib/util/container-flow';
 import { containerPhrasing } from 'mdast-util-to-markdown/lib/util/container-phrasing';
-import { checkQuote } from 'mdast-util-to-markdown/lib/util/check-quote';
 import { track } from 'mdast-util-to-markdown/lib/util/track';
-import { Pattern } from '../../stringify';
-import { ConstructName } from 'mdast-util-directive/lib';
-import { Context as State } from 'mdast-util-to-markdown';
+import { stringifyEntitiesLight } from 'stringify-entities';
+import type { Directive, LeafDirective, TextDirective } from './sitepinsTypes';
 
 const own = {}.hasOwnProperty;
 
-export const directiveToMarkdown: (patterns: Pattern[]) => ToMarkdownExtension =
-  (patterns) => ({
-    unsafe: [
-      {
-        character: '\r',
-        inConstruct: ['leafDirectiveLabel', 'containerDirectiveLabel'],
-      },
-      {
-        character: '\n',
-        inConstruct: ['leafDirectiveLabel', 'containerDirectiveLabel'],
-      },
-      {
-        before: '[^:]',
-        character: ':',
-        after: '[A-Za-z]',
-        inConstruct: ['phrasing'],
-      },
-      { atBreak: true, character: ':', after: ':' },
-    ],
-    handlers: {
-      containerDirective: handleDirective(patterns),
-      leafDirective: handleDirective(patterns),
-      textDirective: handleDirective(patterns),
+export const directiveToMarkdown: (
+  patterns: Pattern[]
+) => ToMarkdownExtension = patterns => ({
+  unsafe: [
+    {
+      character: '\r',
+      inConstruct: ['leafDirectiveLabel', 'containerDirectiveLabel'],
     },
-  });
+    {
+      character: '\n',
+      inConstruct: ['leafDirectiveLabel', 'containerDirectiveLabel'],
+    },
+    {
+      before: '[^:]',
+      character: ':',
+      after: '[A-Za-z]',
+      inConstruct: ['phrasing'],
+    },
+    { atBreak: true, character: ':', after: ':' },
+  ],
+  handlers: {
+    containerDirective: handleDirective(patterns),
+    leafDirective: handleDirective(patterns),
+    textDirective: handleDirective(patterns),
+  },
+});
 
 const handleDirective: (patterns: Pattern[]) => ToMarkdownHandle = function (
   patterns
@@ -53,7 +54,7 @@ const handleDirective: (patterns: Pattern[]) => ToMarkdownHandle = function (
     const tracker = track(safeOptions);
     const exit = state.enter(node.type);
     const pattern = patterns.find(
-      (p) => p.name === node.name || p.templateName === node.name
+      p => p.name === node.name || p.templateName === node.name
     );
     if (!pattern) {
       console.log('no pattern found for directive', node.name);

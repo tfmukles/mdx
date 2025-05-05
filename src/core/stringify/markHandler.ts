@@ -1,14 +1,8 @@
-/**
-
-
-
-*/
-
 import type * as Plate from '@/core/parser/plateHandler';
 import type { RichTextType } from '@/types';
 import type * as Md from 'mdast';
-import { stringifyPropsInline } from './acorn';
-import { getMarks } from './index';
+import { stringifyPropsInline } from './acornStringify';
+import { getMarks } from './mainStringify';
 
 const matches = (a: string[], b: string[]) => {
   return a.some(v => b.includes(v));

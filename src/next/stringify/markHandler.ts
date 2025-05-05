@@ -1,8 +1,8 @@
 import type * as Plate from '@/core/parser/plateHandler';
-import { getMarks } from '@/core/stringify';
+import { getMarks } from '@/core/stringify/mainStringify';
 import type { RichTextField } from '@/types';
 import type * as Md from 'mdast';
-import { stringifyPropsInline } from './acorn';
+import { stringifyPropsInline } from './acornStringify';
 
 const matches = (a: string[], b: string[]) => {
   return a.some(v => b.includes(v));

@@ -1,14 +1,14 @@
-// @ts-ignore Fix this by updating prettier
+// @ts-ignore TODO: Fix this
 import prettier from 'prettier/esm/standalone.mjs';
-// @ts-ignore Fix this by updating prettier
-import type { Field, RichTextField, RichTextTemplate } from '@/types';
+// @ts-ignore TODO: Fix this
+import * as Plate from '@/core/parser/plateHandler';
+import type { RichTextField, RichTextTemplate } from '@/types';
 import type * as Md from 'mdast';
 import type { MdxJsxAttribute } from 'mdast-util-mdx-jsx';
-
-import * as Plate from '@/core/parser/plateHandler';
-// @ts-ignore Fix this by updating prettier
+// @ts-ignore TODO: Fix this
 import parser from 'prettier/esm/parser-espree.mjs';
-import { rootElement, stringifyMDX } from '.';
+import { stringifyMDX } from '../stringify/stringifyIndex';
+import { rootElement } from './pre-processing';
 
 export const stringifyPropsInline = (
   element: Plate.MdxInlineElement,
@@ -52,17 +52,17 @@ export function stringifyProps(
 } {
   const attributes: MdxJsxAttribute[] = [];
   const children: Md.Content[] = [];
-  let template: RichTextTemplate | undefined;
+  let template: RichTextTemplate | undefined | string;
   let useDirective = false;
   let directiveType = 'leaf';
-  template = parentField.templates?.find((template: RichTextTemplate) => {
+  template = parentField.templates?.find(template => {
     if (typeof template === 'string') {
       throw new Error('Global templates not supported');
     }
     return template.name === element.name;
   });
   if (!template) {
-    template = parentField.templates?.find((template: RichTextTemplate) => {
+    template = parentField.templates?.find(template => {
       const templateName = template?.match?.name;
       return templateName === element.name;
     });
@@ -70,7 +70,7 @@ export function stringifyProps(
   if (!template || typeof template === 'string') {
     throw new Error(`Unable to find template for JSX element ${element.name}`);
   }
-  if (template.fields.find((f: Field) => f.name === 'children')) {
+  if (template.fields.find(f => f.name === 'children')) {
     directiveType = 'block';
   }
   useDirective = !!template.match;
@@ -78,7 +78,7 @@ export function stringifyProps(
     if (typeof template === 'string') {
       throw new Error(`Unable to find template for JSX element ${name}`);
     }
-    const field = template?.fields?.find((field: Field) => field.name === name);
+    const field = template?.fields?.find(field => field.name === name);
     if (!field) {
       if (name === 'children') {
         return;
@@ -183,17 +183,12 @@ export function stringifyProps(
         }
         break;
       case 'object':
-        const result = findAndTransformNestedRichText(
-          field,
-          value,
-          imageCallback
-        );
         attributes.push({
           type: 'mdxJsxAttribute',
           name,
           value: {
             type: 'mdxJsxAttributeValueExpression',
-            value: stringifyObj(result, flatten),
+            value: stringifyObj(value, flatten),
           },
         });
         break;
@@ -203,19 +198,11 @@ export function stringifyProps(
             `Unexpected string for rich-text, ensure the value has been properly parsed`
           );
         }
-
         if (field.list) {
           throw new Error(`Rich-text list is not supported`);
         } else {
           const joiner = flatten ? ' ' : '\n';
           let val = '';
-          // The rich-text editor can sometimes pass an empty value {}, consider that nullable
-          if (
-            isPlainObject(value) &&
-            Object.keys(value as object).length === 0
-          ) {
-            return;
-          }
           assertShape<Plate.RootElement>(
             value,
             value => value.type === 'root' && Array.isArray(value.children),
@@ -233,7 +220,7 @@ export function stringifyProps(
               val = stringValue
                 .trim()
                 .split('\n')
-                .map((str: string) => `  ${str.trim()}`)
+                .map(str => `  ${str.trim()}`)
                 .join(joiner);
             }
           }
@@ -319,80 +306,4 @@ export function assertShape<T>(
   if (!callback(value)) {
     throw new Error(errorMessage || `Failed to assert shape`);
   }
-}
-
-function isPlainObject(value: unknown) {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-/**
- * Traverse an object field before stringifying so that we can first stringify
- * any rich-text fields we come across. Beware that this mutates the value in-place for
- * simplicity, and the assumption here is that this is ok because the object
- * is not long-lived.
- */
-const findAndTransformNestedRichText = (
-  field: Field,
-  value: unknown,
-  imageCallback: (url: string) => string,
-  parentValue: Record<string, unknown> = {}
-) => {
-  switch (field.type) {
-    case 'rich-text': {
-      assertShape<Plate.RootElement>(
-        value,
-        value => value.type === 'root' && Array.isArray(value.children),
-        `Nested rich-text element is not a valid shape for field ${field.name}`
-      );
-      parentValue[field.name] = stringifyMDX(value, field, imageCallback);
-      break;
-    }
-    case 'object': {
-      if (field.list) {
-        if (Array.isArray(value)) {
-          value.forEach(item => {
-            Object.entries(item).forEach(([key, subValue]) => {
-              if (field.fields) {
-                const subField = field.fields.find(
-                  ({ name }: { name: string }) => name === key
-                );
-                if (subField) {
-                  findAndTransformNestedRichText(
-                    subField,
-                    subValue,
-                    imageCallback,
-                    item
-                  );
-                }
-              }
-            });
-          });
-        }
-      } else {
-        if (isObject(value)) {
-          Object.entries(value).forEach(([key, subValue]) => {
-            if (field.fields) {
-              const subField = field.fields.find(
-                ({ name }: { name: string }) => name === key
-              );
-              if (subField) {
-                findAndTransformNestedRichText(
-                  subField,
-                  subValue,
-                  imageCallback,
-                  value
-                );
-              }
-            }
-          });
-        }
-      }
-      break;
-    }
-  }
-  return value;
-};
-
-function isObject(value: any): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

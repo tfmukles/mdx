@@ -1,3 +1,4 @@
+import type { Pattern } from '@/core/stringify/mainStringify';
 import type { Field, RichTextTemplate, RichTextType } from '@/types';
 import { fromMarkdown } from 'mdast-util-from-markdown';
 import { gfmFromMarkdown } from 'mdast-util-gfm';
@@ -6,9 +7,8 @@ import { remark } from 'remark';
 import remarkGfm from 'remark-gfm';
 import remarkMdx, { type Root } from 'remark-mdx';
 import { parseMDX as parseMDXNext } from '../../next';
-import { sitepinsDirective } from '../extensions/sitepins-shortcodes/extension';
-import { directiveFromMarkdown } from '../extensions/sitepins-shortcodes/from-markdown';
-import type { Pattern } from '../stringify';
+import { directiveFromMarkdown } from '../extensions/sitepins-shortcodes/markdownParser';
+import { sitepinsDirective } from '../extensions/sitepins-shortcodes/sitepinsExtension';
 import type * as Plate from './plateHandler';
 import { remarkToSlate, RichTextParseError } from './remarkConverter';
 import { parseShortcode } from './shortcodeManager';

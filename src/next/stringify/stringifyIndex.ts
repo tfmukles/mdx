@@ -1,7 +1,7 @@
 import type * as Plate from '@/core/parser/plateHandler';
 import { RichTextField } from '@/types';
+import { toSitepinsMarkdown } from './markdownSerializer';
 import { preProcess } from './pre-processing';
-import { toSitepinsMarkdown } from './to-markdown';
 
 export const stringifyMDX = (
   value: Plate.RootElement,

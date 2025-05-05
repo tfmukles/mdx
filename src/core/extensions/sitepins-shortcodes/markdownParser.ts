@@ -3,28 +3,28 @@ import type {
   Extension as FromMarkdownExtension,
   Handle as FromMarkdownHandle,
   Token,
-} from "mdast-util-from-markdown";
-import { parseEntities } from "parse-entities";
-import type { Directive } from "./types";
+} from 'mdast-util-from-markdown';
+import { parseEntities } from 'parse-entities';
+import { Directive } from './sitepinsTypes';
 
 const enterContainer: FromMarkdownHandle = function (token) {
-  enter.call(this, "containerDirective", token);
+  enter.call(this, 'containerDirective', token);
 };
 
 const enterLeaf: FromMarkdownHandle = function (token) {
-  enter.call(this, "leafDirective", token);
+  enter.call(this, 'leafDirective', token);
 };
 
 const enterText: FromMarkdownHandle = function (token) {
-  enter.call(this, "textDirective", token);
+  enter.call(this, 'textDirective', token);
 };
 
 const enter = function (
   this: CompileContext,
-  type: "containerDirective" | "leafDirective" | "textDirective",
+  type: 'containerDirective' | 'leafDirective' | 'textDirective',
   token: Token
 ) {
-  this.enter({ type, name: "", attributes: {}, children: [] }, token);
+  this.enter({ type, name: '', attributes: {}, children: [] }, token);
 };
 
 function exitName(this: CompileContext, token: Token) {
@@ -34,7 +34,7 @@ function exitName(this: CompileContext, token: Token) {
 
 const enterContainerLabel: FromMarkdownHandle = function (token) {
   this.enter(
-    { type: "paragraph", data: { directiveLabel: true }, children: [] },
+    { type: 'paragraph', data: { directiveLabel: true }, children: [] },
     token
   );
 };
@@ -44,15 +44,15 @@ const exitContainerLabel: FromMarkdownHandle = function (token) {
 };
 
 const enterAttributes: FromMarkdownHandle = function () {
-  this.setData("directiveAttributes", []);
+  this.setData('directiveAttributes', []);
   this.buffer(); // Capture EOLs
 };
 
 const exitAttributeIdValue: FromMarkdownHandle = function (token) {
-  const list = this.getData("directiveAttributes");
+  const list = this.getData('directiveAttributes');
   if (list) {
     list.push([
-      "id",
+      'id',
       parseEntities(this.sliceSerialize(token), {
         attribute: true,
       }),
@@ -61,10 +61,10 @@ const exitAttributeIdValue: FromMarkdownHandle = function (token) {
 };
 
 const exitAttributeClassValue: FromMarkdownHandle = function (token) {
-  const list = this.getData("directiveAttributes");
+  const list = this.getData('directiveAttributes');
   if (list) {
     list.push([
-      "class",
+      'class',
       parseEntities(this.sliceSerialize(token), {
         attribute: true,
       }),
@@ -73,7 +73,7 @@ const exitAttributeClassValue: FromMarkdownHandle = function (token) {
 };
 
 const exitAttributeValue: FromMarkdownHandle = function (token) {
-  const list = this.getData("directiveAttributes");
+  const list = this.getData('directiveAttributes');
   if (list) {
     const item = list[list.length - 1];
     if (item) {
@@ -85,22 +85,22 @@ const exitAttributeValue: FromMarkdownHandle = function (token) {
 };
 
 const exitAttributeName: FromMarkdownHandle = function (token) {
-  const list = this.getData("directiveAttributes");
+  const list = this.getData('directiveAttributes');
 
   // Attribute names in CommonMark are significantly limited, so character
   // references can't exist.
   if (list) {
     const name = this.sliceSerialize(token);
     if (!name) {
-      list.push(["_value", ""]);
+      list.push(['_value', '']);
     } else {
-      list.push([this.sliceSerialize(token), ""]);
+      list.push([this.sliceSerialize(token), '']);
     }
   }
 };
 
 function exitAttributes(this: CompileContext) {
-  const list = this.getData("directiveAttributes");
+  const list = this.getData('directiveAttributes');
   const cleaned: Record<string, string> = {};
   let index = -1;
 
@@ -109,8 +109,8 @@ function exitAttributes(this: CompileContext) {
       const attribute = list[index];
 
       if (attribute) {
-        if (attribute[0] === "class" && cleaned.class) {
-          cleaned.class += " " + attribute[1];
+        if (attribute[0] === 'class' && cleaned.class) {
+          cleaned.class += ' ' + attribute[1];
         } else {
           cleaned[attribute[0]] = attribute[1];
         }
@@ -118,7 +118,7 @@ function exitAttributes(this: CompileContext) {
     }
   }
 
-  this.setData("directiveAttributes");
+  this.setData('directiveAttributes');
   this.resume(); // Drop EOLs
   const node = this.stack[this.stack.length - 1] as Directive;
   node.attributes = cleaned;
@@ -129,7 +129,7 @@ function exit(this: CompileContext, token: Token) {
 }
 
 export const directiveFromMarkdown: FromMarkdownExtension = {
-  canContainEols: ["textDirective"],
+  canContainEols: ['textDirective'],
   enter: {
     directiveContainer: enterContainer,
     directiveContainerAttributes: enterAttributes,

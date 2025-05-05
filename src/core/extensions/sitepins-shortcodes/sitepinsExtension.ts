@@ -1,14 +1,14 @@
-import type { Construct, Extension } from "micromark-util-types";
-import type { Pattern } from "../../stringify";
-import { directiveContainer } from "./shortcode-container";
-import { directiveLeaf, findCode } from "./shortcode-leaf";
+import type { Pattern } from '@/core/stringify/mainStringify';
+import type { Construct, Extension } from 'micromark-util-types';
+import { directiveContainer } from './containerShortcode';
+import { directiveLeaf, findCode } from './leafShortcode';
 
 export const sitepinsDirective: (patterns: Pattern[]) => Extension = function (
   patterns
 ) {
   const rules: Record<number, Construct[]> = {};
 
-  patterns.forEach((pattern) => {
+  patterns.forEach(pattern => {
     const firstKey = pattern.start[0];
     if (!firstKey) return;
 
@@ -16,9 +16,9 @@ export const sitepinsDirective: (patterns: Pattern[]) => Extension = function (
     if (!code) return;
 
     const directive =
-      pattern.type === "leaf"
+      pattern.type === 'leaf'
         ? directiveLeaf(pattern)
-        : pattern.type === "block"
+        : pattern.type === 'block'
         ? directiveContainer(pattern)
         : null;
 

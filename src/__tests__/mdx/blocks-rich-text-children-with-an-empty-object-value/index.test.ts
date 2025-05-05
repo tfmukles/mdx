@@ -1,5 +1,5 @@
 import { RootElement } from '@/core/parser/plateHandler';
-import { stringifyMDX } from '@/core/stringify';
+import { stringifyMDX } from '@/core/stringify/mainStringify';
 import { expect, it } from 'vitest';
 import * as util from '../../util';
 import { field } from './field';

@@ -1,9 +1,9 @@
+import { toSitepinsMarkdown } from '@/core/stringify/mainStringify';
 import type { Field, RichTextTemplate, RichTextType } from '@/types';
 import { ContainerDirective } from 'mdast-util-directive';
 import { LeafDirective } from 'mdast-util-directive/lib';
 import type { MdxJsxFlowElement, MdxJsxTextElement } from 'mdast-util-mdx-jsx';
 import { source } from 'unist-util-source';
-import { toSitepinsMarkdown } from '../stringify';
 import { extractAttributes } from './acornEngine';
 import type * as Plate from './plateHandler';
 import { remarkToSlate, RichTextParseError } from './remarkConverter';

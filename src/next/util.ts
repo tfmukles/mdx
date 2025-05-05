@@ -1,5 +1,5 @@
 import type { Field, RichTextField, RichTextTemplate } from '@/types';
-import type { Pattern } from './shortcodes';
+import type { Pattern } from './shortcodes/shortcodeIndex';
 
 export const getFieldPatterns = (field: RichTextField) => {
   const patterns: Pattern[] = [];

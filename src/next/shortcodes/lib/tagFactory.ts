@@ -1,19 +1,19 @@
 import {
   cont as idCont,
   start as idStart,
-} from "estree-util-is-identifier-name";
-import type { Acorn, AcornOptions } from "micromark-factory-mdx-expression";
-import { factoryMdxExpression } from "micromark-factory-mdx-expression";
-import { factorySpace } from "micromark-factory-space";
+} from 'estree-util-is-identifier-name';
+import type { Acorn, AcornOptions } from 'micromark-factory-mdx-expression';
+import { factoryMdxExpression } from 'micromark-factory-mdx-expression';
+import { factorySpace } from 'micromark-factory-space';
 import {
   markdownLineEnding,
   markdownLineEndingOrSpace,
   markdownSpace,
   unicodeWhitespace,
-} from "micromark-util-character";
-import { codes } from "micromark-util-symbol/codes.js";
-import { constants } from "micromark-util-symbol/constants.js";
-import { types } from "micromark-util-symbol/types.js";
+} from 'micromark-util-character';
+import { codes } from 'micromark-util-symbol/codes.js';
+import { constants } from 'micromark-util-symbol/constants.js';
+import { types } from 'micromark-util-symbol/types.js';
 import type {
   Code,
   Effects,
@@ -21,11 +21,11 @@ import type {
   State,
   TokenizeContext,
   Tokenizer,
-} from "micromark-util-types";
-import { ok as assert } from "uvu/assert";
-import { VFileMessage } from "vfile-message";
-import { Pattern } from "./syntax";
-import { findCode } from "./util";
+} from 'micromark-util-types';
+import { ok as assert } from 'uvu/assert';
+import { VFileMessage } from 'vfile-message';
+import { findCode } from './shortcodeUtils';
+import { Pattern } from './syntaxParser';
 
 export function factoryTag(
   this: TokenizeContext,
@@ -263,8 +263,8 @@ export function factoryTag(
 
     crash(
       code,
-      "after name",
-      "a character that can start an attribute name, such as a letter, `$`, or `_`; whitespace before attributes; or the end of the tag"
+      'after name',
+      'a character that can start an attribute name, such as a letter, `$`, or `_`; whitespace before attributes; or the end of the tag'
     );
   };
 
@@ -280,8 +280,8 @@ export function factoryTag(
 
     crash(
       code,
-      "before member name",
-      "a character that can start an attribute name, such as a letter, `$`, or `_`; whitespace before attributes; or the end of the tag"
+      'before member name',
+      'a character that can start an attribute name, such as a letter, `$`, or `_`; whitespace before attributes; or the end of the tag'
     );
   };
 
@@ -310,11 +310,11 @@ export function factoryTag(
     // Invalid character in member name
     crash(
       code,
-      "in member name",
-      "a name character such as letters, digits, `$`, or `_`; whitespace before attributes; or the end of the tag" +
+      'in member name',
+      'a name character such as letters, digits, `$`, or `_`; whitespace before attributes; or the end of the tag' +
         (code === codes.atSign
-          ? " (note: to create a link in MDX, use `[text](url)`)"
-          : "")
+          ? ' (note: to create a link in MDX, use `[text](url)`)'
+          : '')
     );
   };
 
@@ -362,14 +362,14 @@ export function factoryTag(
 
     crash(
       code,
-      "before local name",
-      "a character that can start a name, such as a letter, `$`, or `_`" +
+      'before local name',
+      'a character that can start a name, such as a letter, `$`, or `_`' +
         (code === codes.plusSign ||
         (code !== null &&
           code > codes.dot &&
           code < codes.colon) /* `/` - `9` */
-          ? " (note: to create a link in MDX, use `[text](url)`)"
-          : "")
+          ? ' (note: to create a link in MDX, use `[text](url)`)'
+          : '')
     );
   };
 
@@ -396,8 +396,8 @@ export function factoryTag(
 
     crash(
       code,
-      "in local name",
-      "a name character such as letters, digits, `$`, or `_`; whitespace before attributes; or the end of the tag"
+      'in local name',
+      'a name character such as letters, digits, `$`, or `_`; whitespace before attributes; or the end of the tag'
     );
   };
 
@@ -422,8 +422,8 @@ export function factoryTag(
     // Error handling for unexpected characters after local name
     crash(
       code,
-      "after local name",
-      "a character that can start an attribute name, such as a letter, `$`, or `_`; whitespace before attributes; or the end of the tag"
+      'after local name',
+      'a character that can start an attribute name, such as a letter, `$`, or `_`; whitespace before attributes; or the end of the tag'
     );
   };
 
@@ -475,7 +475,7 @@ export function factoryTag(
 
     // Attribute expression.
     if (code === codes.leftCurlyBrace) {
-      assert(startPoint, "expected `startPoint` to be defined");
+      assert(startPoint, 'expected `startPoint` to be defined');
       return factoryMdxExpression.call(
         self,
         effects,
@@ -606,8 +606,8 @@ export function factoryTag(
     // Error handling for invalid characters before local attribute name
     crash(
       code,
-      "before local attribute name",
-      "a character that can start an attribute name, such as a letter, `$`, or `_`; `=` to initialize a value; or the end of the tag"
+      'before local attribute name',
+      'a character that can start an attribute name, such as a letter, `$`, or `_`; `=` to initialize a value; or the end of the tag'
     );
   };
 
@@ -637,8 +637,8 @@ export function factoryTag(
     // Error handling for invalid characters in local attribute name
     crash(
       code,
-      "in local attribute name",
-      "an attribute name character such as letters, digits, `$`, or `_`; `=` to initialize a value; whitespace before attributes; or the end of the tag"
+      'in local attribute name',
+      'an attribute name character such as letters, digits, `$`, or `_`; `=` to initialize a value; whitespace before attributes; or the end of the tag'
     );
   };
 
@@ -667,8 +667,8 @@ export function factoryTag(
     // Error handling for invalid characters after local attribute name
     crash(
       code,
-      "after local attribute name",
-      "a character that can start an attribute name, such as a letter, `$`, or `_`; `=` to initialize a value; or the end of the tag"
+      'after local attribute name',
+      'a character that can start an attribute name, such as a letter, `$`, or `_`; `=` to initialize a value; or the end of the tag'
     );
   };
 
@@ -686,7 +686,7 @@ export function factoryTag(
 
     // Start of an assignment expression.
     if (code === codes.leftCurlyBrace) {
-      assert(startPoint, "expected `startPoint` to be defined");
+      assert(startPoint, 'expected `startPoint` to be defined');
       return factoryMdxExpression.call(
         self,
         effects,
@@ -724,7 +724,7 @@ export function factoryTag(
 
   // At the start of a quoted attribute value.
   const attributeValueQuotedStart: State = function (code) {
-    assert(marker !== undefined, "expected `marker` to be defined");
+    assert(marker !== undefined, 'expected `marker` to be defined');
 
     if (code === codes.eof) {
       return nok(code);
@@ -778,11 +778,11 @@ export function factoryTag(
     // Error handling for invalid characters after self-closing slash
     crash(
       code,
-      "after self-closing slash",
-      "`>` to end the tag" +
+      'after self-closing slash',
+      '`>` to end the tag' +
         (code === codes.asterisk || code === codes.slash
-          ? " (note: JS comments in JSX tags are not supported in MDX)"
-          : "")
+          ? ' (note: JS comments in JSX tags are not supported in MDX)'
+          : '')
     );
   };
 
@@ -824,7 +824,7 @@ export function factoryTag(
     }
 
     if (markdownSpace(code) || unicodeWhitespace(code)) {
-      effects.enter("esWhitespace");
+      effects.enter('esWhitespace');
       return optionalEsWhitespaceContinue(code);
     }
 
@@ -837,7 +837,7 @@ export function factoryTag(
       markdownLineEnding(code) ||
       !(markdownSpace(code) || unicodeWhitespace(code))
     ) {
-      effects.exit("esWhitespace");
+      effects.exit('esWhitespace');
       return optionalEsWhitespace(code);
     }
 
@@ -848,32 +848,32 @@ export function factoryTag(
   /** @type {State} */
   function crashEol() {
     throw new VFileMessage(
-      "Unexpected lazy line in container, expected line to be prefixed with `>` when in a block quote, whitespace when in a list, etc",
+      'Unexpected lazy line in container, expected line to be prefixed with `>` when in a block quote, whitespace when in a list, etc',
       self.now(),
-      "micromark-extension-mdx-jsx:unexpected-eof"
+      'micromark-extension-mdx-jsx:unexpected-eof'
     );
   }
 
   // Crash at a nonconforming character.
   function crash(code: Code, at: string, expect: string) {
     throw new VFileMessage(
-      "Unexpected " +
+      'Unexpected ' +
         (code === codes.eof
-          ? "end of file"
-          : "character `" +
+          ? 'end of file'
+          : 'character `' +
             (code === codes.graveAccent
-              ? "` ` `"
+              ? '` ` `'
               : String.fromCodePoint(code)) +
-            "` (" +
+            '` (' +
             serializeCharCode(code) +
-            ")") +
-        " " +
+            ')') +
+        ' ' +
         at +
-        ", expected " +
+        ', expected ' +
         expect,
       self.now(),
-      "micromark-extension-mdx-jsx:unexpected-" +
-        (code === codes.eof ? "eof" : "character")
+      'micromark-extension-mdx-jsx:unexpected-' +
+        (code === codes.eof ? 'eof' : 'character')
     );
   }
 
@@ -886,7 +886,7 @@ const tokenizeLazyLineEnd: Tokenizer = function (effects, ok, nok) {
   const self = this;
 
   const start: State = function (code) {
-    assert(markdownLineEnding(code), "expected eol");
+    assert(markdownLineEnding(code), 'expected eol');
     effects.enter(types.lineEnding);
     effects.consume(code);
     effects.exit(types.lineEnding);
@@ -907,11 +907,11 @@ const tokenizeLazyLineEnd: Tokenizer = function (effects, ok, nok) {
  */
 const serializeCharCode = function (code: NonNullable<Code>): string {
   return (
-    "U+" +
+    'U+' +
     code
       .toString(constants.numericBaseHexadecimal)
       .toUpperCase()
-      .padStart(4, "0")
+      .padStart(4, '0')
   );
 };
 

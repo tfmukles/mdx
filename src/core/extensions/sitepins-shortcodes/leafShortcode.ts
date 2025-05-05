@@ -1,12 +1,12 @@
-import { factorySpace } from "micromark-factory-space";
-import { markdownLineEnding, markdownSpace } from "micromark-util-character";
-import { codes } from "micromark-util-symbol/codes";
-import { types } from "micromark-util-symbol/types";
-import { values } from "micromark-util-symbol/values";
-import type { Construct, State, Tokenizer } from "micromark-util-types";
-import type { Pattern } from "../../stringify";
-import { factoryAttributes } from "./factory-attributes";
-import { factoryName } from "./factory-name";
+import type { Pattern } from '@/core/stringify/mainStringify';
+import { factorySpace } from 'micromark-factory-space';
+import { markdownLineEnding, markdownSpace } from 'micromark-util-character';
+import { codes } from 'micromark-util-symbol/codes';
+import { types } from 'micromark-util-symbol/types';
+import { values } from 'micromark-util-symbol/values';
+import type { Construct, State, Tokenizer } from 'micromark-util-types';
+import { factoryAttributes } from './attributesFactory';
+import { factoryName } from './nameFactory';
 
 /**
  * Finds the key in values object that matches the given string
@@ -58,22 +58,22 @@ export const directiveLeaf = (pattern: Pattern): Construct => {
     let startSequenceIndex = 1;
     let endSequenceIndex = 0;
 
-    const ok: State = (code) => ook(code);
-    const nok: State = (code) => nnok(code);
+    const ok: State = code => ook(code);
+    const nok: State = code => nnok(code);
 
-    const start: State = (code) => {
+    const start: State = code => {
       const firstCharacter = pattern.start[0];
       if (findCode(firstCharacter) === code) {
-        effects.enter("directiveLeaf");
-        effects.enter("directiveLeafFence");
-        effects.enter("directiveLeafSequence");
+        effects.enter('directiveLeaf');
+        effects.enter('directiveLeafFence');
+        effects.enter('directiveLeafSequence');
         effects.consume(code);
         return sequenceOpen;
       }
       return nok(code);
     };
 
-    const sequenceOpen: State = (code) => {
+    const sequenceOpen: State = code => {
       const nextCharacter = pattern.start[startSequenceIndex];
       if (findCode(nextCharacter) === code) {
         effects.consume(code);
@@ -85,11 +85,11 @@ export const directiveLeaf = (pattern: Pattern): Construct => {
         return nok(code);
       }
 
-      effects.exit("directiveLeafSequence");
+      effects.exit('directiveLeafSequence');
       return factorName(code);
     };
 
-    const factorName: State = (code) => {
+    const factorName: State = code => {
       if (markdownSpace(code)) {
         return factorySpace(effects, factorName, types.whitespace)(code);
       }
@@ -98,12 +98,12 @@ export const directiveLeaf = (pattern: Pattern): Construct => {
         effects,
         afterName,
         nok,
-        "directiveLeafName",
+        'directiveLeafName',
         pattern.name || pattern.templateName
       )(code);
     };
 
-    const afterName: State = (code) => {
+    const afterName: State = code => {
       if (markdownSpace(code)) {
         return factorySpace(effects, afterName, types.whitespace)(code);
       }
@@ -113,7 +113,7 @@ export const directiveLeaf = (pattern: Pattern): Construct => {
       return startAttributes;
     };
 
-    const startAttributes: State = (code) => {
+    const startAttributes: State = code => {
       const nextCharacter = pattern.end[endSequenceIndex];
       if (findCode(nextCharacter) === code) {
         return afterAttributes(code);
@@ -125,13 +125,13 @@ export const directiveLeaf = (pattern: Pattern): Construct => {
       )(code);
     };
 
-    const end: State = (code) => {
-      effects.exit("directiveLeafFence");
-      effects.exit("directiveLeaf");
+    const end: State = code => {
+      effects.exit('directiveLeafFence');
+      effects.exit('directiveLeaf');
       return ok(code);
     };
 
-    const afterAttributes: State = (code) => {
+    const afterAttributes: State = code => {
       const nextCharacter = pattern.end[endSequenceIndex];
       if (pattern.end.length === endSequenceIndex) {
         return factorySpace(effects, end, types.whitespace)(code);
@@ -155,17 +155,17 @@ export const directiveLeaf = (pattern: Pattern): Construct => {
       effects,
       ok,
       nok,
-      "directiveLeafAttributes",
-      "directiveLeafAttributesMarker",
-      "directiveLeafAttribute",
-      "directiveLeafAttributeId",
-      "directiveLeafAttributeClass",
-      "directiveLeafAttributeName",
-      "directiveLeafAttributeInitializerMarker",
-      "directiveLeafAttributeValueLiteral",
-      "directiveLeafAttributeValue",
-      "directiveLeafAttributeValueMarker",
-      "directiveLeafAttributeValueData",
+      'directiveLeafAttributes',
+      'directiveLeafAttributesMarker',
+      'directiveLeafAttribute',
+      'directiveLeafAttributeId',
+      'directiveLeafAttributeClass',
+      'directiveLeafAttributeName',
+      'directiveLeafAttributeInitializerMarker',
+      'directiveLeafAttributeValueLiteral',
+      'directiveLeafAttributeValue',
+      'directiveLeafAttributeValueMarker',
+      'directiveLeafAttributeValueData',
       true
     );
   };
