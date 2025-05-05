@@ -1,2 +1,2 @@
-export { stringifyMDX } from './stringify';
-export { parseMDX } from './parse';
+export { convertMDXToSlateAST as parseMDX } from './parse/parseIndex';
+export { stringifyMDX } from './stringify/stringifyIndex';
