@@ -1,14 +1,17 @@
-import type { RichTextType } from "@/types";
-import flatten from "lodash.flatten";
-import type * as Md from "mdast";
-import type { ContainerDirective } from "mdast-util-directive";
-import type { MdxJsxFlowElement, MdxJsxTextElement } from "mdast-util-mdx-jsx";
-import { directiveElement, mdxJsxElement as mdxJsxElementDefault } from "./mdx";
-import type * as Plate from "./plate";
+import type { RichTextType } from '@/types';
+import flatten from 'lodash.flatten';
+import type * as Md from 'mdast';
+import type { ContainerDirective } from 'mdast-util-directive';
+import type { MdxJsxFlowElement, MdxJsxTextElement } from 'mdast-util-mdx-jsx';
+import {
+  directiveElement,
+  mdxJsxElement as mdxJsxElementDefault,
+} from './mdxProcessor';
+import type * as Plate from './plateHandler';
 
-export type { Position, PositionItem } from "./plate";
+export type { Position, PositionItem } from './plateHandler';
 
-declare module "mdast" {
+declare module 'mdast' {
   interface StaticPhrasingContentMap {
     mdxJsxTextElement: MdxJsxTextElement;
   }
@@ -37,22 +40,20 @@ export const remarkToSlate = (
 
   const content = (content: Md.Content): Plate.BlockElement => {
     switch (content.type) {
-      case "table": {
+      case 'table': {
         return {
-          type: "table",
-          children: content.children.map((tableRow) => {
+          type: 'table',
+          children: content.children.map(tableRow => {
             return {
-              type: "tr",
-              children: tableRow.children.map((tableCell) => {
+              type: 'tr',
+              children: tableRow.children.map(tableCell => {
                 return {
-                  type: "td",
+                  type: 'td',
                   children: [
                     {
-                      type: "p",
+                      type: 'p',
                       children: flatten(
-                        tableCell.children.map((child) =>
-                          phrasingContent(child)
-                        )
+                        tableCell.children.map(child => phrasingContent(child))
                       ),
                     },
                   ],
@@ -61,55 +62,55 @@ export const remarkToSlate = (
             };
           }),
           props: {
-            align: content.align?.filter((item) => !!item),
+            align: content.align?.filter(item => !!item),
           },
         };
       }
-      case "blockquote":
+      case 'blockquote':
         const children: Plate.InlineElement[] = [];
-        content.children.map((child) => {
+        content.children.map(child => {
           const inlineElements = unwrapBlockContent(child);
-          inlineElements.forEach((child) => {
+          inlineElements.forEach(child => {
             children.push(child);
           });
         });
         return {
-          type: "blockquote",
+          type: 'blockquote',
           children,
         };
-      case "heading":
+      case 'heading':
         return heading(content);
-      case "code":
+      case 'code':
         return parseCode(content);
-      case "paragraph":
+      case 'paragraph':
         return paragraph(content);
-      case "mdxJsxFlowElement":
+      case 'mdxJsxFlowElement':
         return mdxJsxElement(content, field, imageCallback);
-      case "thematicBreak":
+      case 'thematicBreak':
         return {
-          type: "hr",
-          children: [{ type: "text", text: "" }],
+          type: 'hr',
+          children: [{ type: 'text', text: '' }],
         };
-      case "listItem":
+      case 'listItem':
         return {
-          type: "li",
+          type: 'li',
           children: [
             {
-              type: "lic",
+              type: 'lic',
               children: flatten(
-                content.children.map((child) => unwrapBlockContent(child))
+                content.children.map(child => unwrapBlockContent(child))
               ),
             },
           ],
         };
-      case "list":
+      case 'list':
         return list(content);
-      case "html":
+      case 'html':
         return html(content);
       // @ts-ignore
-      case "mdxFlowExpression":
+      case 'mdxFlowExpression':
       // @ts-ignore
-      case "mdxjsEsm":
+      case 'mdxjsEsm':
         // @ts-ignore
         throw new RichTextParseError(
           // @ts-ignore
@@ -117,10 +118,10 @@ export const remarkToSlate = (
           // @ts-ignore
           content.position
         );
-      case "leafDirective": {
+      case 'leafDirective': {
         return directiveElement(content, field, imageCallback, raw);
       }
-      case "containerDirective": {
+      case 'containerDirective': {
         return directiveElement(content, field, imageCallback, raw);
       }
       default:
@@ -136,9 +137,9 @@ export const remarkToSlate = (
   // This is only really used for non-MDX contexts
   const html = (content: Md.HTML): Plate.HTMLElement => {
     return {
-      type: "html",
+      type: 'html',
       value: content.value,
-      children: [{ type: "text", text: "" }],
+      children: [{ type: 'text', text: '' }],
     };
   };
 
@@ -146,16 +147,16 @@ export const remarkToSlate = (
   // This is only really used for non-MDX contexts
   const html_inline = (content: Md.HTML): Plate.HTMLInlineElement => {
     return {
-      type: "html_inline",
+      type: 'html_inline',
       value: content.value,
-      children: [{ type: "text", text: "" }],
+      children: [{ type: 'text', text: '' }],
     };
   };
 
   const list = (content: Md.List): Plate.List => {
     return {
-      type: content.ordered ? "ol" : "ul",
-      children: content.children.map((child) => listItem(child)),
+      type: content.ordered ? 'ol' : 'ul',
+      children: content.children.map(child => listItem(child)),
     };
   };
 
@@ -173,41 +174,41 @@ export const remarkToSlate = (
      */
 
     return {
-      type: "li",
+      type: 'li',
       // @ts-ignore
-      children: content.children.map((child) => {
+      children: content.children.map(child => {
         switch (child.type) {
-          case "list":
+          case 'list':
             return list(child);
-          case "heading":
-          case "paragraph":
+          case 'heading':
+          case 'paragraph':
             return {
-              type: "lic",
+              type: 'lic',
               children: flatten(
-                child.children.map((child) => phrasingContent(child))
+                child.children.map(child => phrasingContent(child))
               ),
             };
-          case "blockquote": {
+          case 'blockquote': {
             return {
               ...blockquote(child),
-              type: "lic",
+              type: 'lic',
             };
           }
-          case "mdxJsxFlowElement":
+          case 'mdxJsxFlowElement':
             return {
-              type: "lic",
+              type: 'lic',
               children: [
                 // @ts-ignore casting a flow element to a paragraph
                 mdxJsxElement(
-                  { ...child, type: "mdxJsxTextElement" as const },
+                  { ...child, type: 'mdxJsxTextElement' as const },
                   field,
                   imageCallback
                 ),
               ],
             };
-          case "html":
+          case 'html':
             return {
-              type: "lic",
+              type: 'lic',
               children: html_inline(child),
             };
 
@@ -220,22 +221,22 @@ export const remarkToSlate = (
            *
            *   {{% my-shortcode %}}
            */
-          case "leafDirective": {
+          case 'leafDirective': {
             return {
-              type: "lic",
+              type: 'lic',
               children: [directiveElement(child, field, imageCallback)],
             };
           }
-          case "code":
-          case "thematicBreak":
-          case "table":
+          case 'code':
+          case 'thematicBreak':
+          case 'table':
             throw new RichTextParseError(
               `${child.type} inside list item is not supported`,
               child.position
             );
           default:
             let position: Plate.Position | undefined;
-            if (child.type !== "containerDirective") {
+            if (child.type !== 'containerDirective') {
               position = child.position;
             }
             throw new RichTextParseError(
@@ -253,21 +254,21 @@ export const remarkToSlate = (
     const flattenPhrasingContent = (
       children: Md.PhrasingContent[]
     ): Plate.LicElement[] => {
-      const children2 = children.map((child) => phrasingContent(child));
+      const children2 = children.map(child => phrasingContent(child));
       return flatten(Array.isArray(children2) ? children2 : [children2]);
     };
     switch (content.type) {
-      case "heading":
-      case "paragraph":
+      case 'heading':
+      case 'paragraph':
         return flattenPhrasingContent(content.children);
       /**
        * Eg.
        *
        * >>> my content
        */
-      case "html":
+      case 'html':
         return [html_inline(content)];
-      case "blockquote":
+      case 'blockquote':
       // TODO
       default:
         throw new RichTextParseError(
@@ -282,7 +283,7 @@ export const remarkToSlate = (
   const parseCode = (
     content: Md.Code
   ): Plate.CodeBlockElement | Plate.MermaidElement => {
-    if (content.lang === "mermaid") {
+    if (content.lang === 'mermaid') {
       return mermaid(content);
     }
     return code(content);
@@ -290,37 +291,37 @@ export const remarkToSlate = (
 
   const mermaid = (content: Md.Code): Plate.MermaidElement => {
     return {
-      type: "mermaid",
+      type: 'mermaid',
       value: content.value,
-      children: [{ type: "text", text: "" }],
+      children: [{ type: 'text', text: '' }],
     };
   };
 
   const code = (content: Md.Code): Plate.CodeBlockElement => {
     const extra: Record<string, string> = {};
-    if (content.lang) extra["lang"] = content.lang;
+    if (content.lang) extra['lang'] = content.lang;
     return {
-      type: "code_block",
+      type: 'code_block',
       ...extra,
       value: content.value,
-      children: [{ type: "text", text: "" }],
+      children: [{ type: 'text', text: '' }],
     };
   };
   const link = (content: Md.Link): Plate.LinkElement => {
     return {
-      type: "a",
+      type: 'a',
       url: sanitizeUrl(content.url),
       title: content.title,
       children: flatten(
-        content.children.map((child) => staticPhrasingContent(child))
+        content.children.map(child => staticPhrasingContent(child))
       ),
     };
   };
   const heading = (content: Md.Heading): Plate.HeadingElement => {
     return {
-      type: ["h1", "h2", "h3", "h4", "h5", "h6"][
+      type: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'][
         content.depth - 1
-      ] as Plate.HeadingElement["type"],
+      ] as Plate.HeadingElement['type'],
       children: flatten(content.children.map(phrasingContent)),
     };
   };
@@ -328,16 +329,16 @@ export const remarkToSlate = (
     content: Md.StaticPhrasingContent
   ): Plate.InlineElement | Plate.InlineElement[] => {
     switch (content.type) {
-      case "mdxJsxTextElement":
+      case 'mdxJsxTextElement':
         return mdxJsxElement(content, field, imageCallback);
-      case "text":
+      case 'text':
         return text(content);
-      case "inlineCode":
-      case "emphasis":
-      case "image":
-      case "strong":
+      case 'inlineCode':
+      case 'emphasis':
+      case 'image':
+      case 'strong':
         return phrashingMark(content);
-      case "html":
+      case 'html':
         return html_inline(content);
       default:
         throw new Error(
@@ -349,28 +350,28 @@ export const remarkToSlate = (
     content: Md.PhrasingContent
   ): Plate.InlineElement | Plate.InlineElement[] => {
     switch (content.type) {
-      case "text":
+      case 'text':
         return text(content);
-      case "delete":
+      case 'delete':
         return phrashingMark(content);
-      case "link":
+      case 'link':
         return link(content);
-      case "image":
+      case 'image':
         return image(content);
-      case "mdxJsxTextElement":
+      case 'mdxJsxTextElement':
         return mdxJsxElement(content, field, imageCallback);
-      case "emphasis":
+      case 'emphasis':
         return phrashingMark(content);
-      case "strong":
+      case 'strong':
         return phrashingMark(content);
-      case "break":
+      case 'break':
         return breakContent();
-      case "inlineCode":
+      case 'inlineCode':
         return phrashingMark(content);
-      case "html":
+      case 'html':
         return html_inline(content);
       // @ts-ignore
-      case "mdxTextExpression":
+      case 'mdxTextExpression':
         throw new RichTextParseError(
           // @ts-ignore
           `Unexpected expression ${content.value}.`,
@@ -385,11 +386,11 @@ export const remarkToSlate = (
   };
   const breakContent = (): Plate.BreakElement => {
     return {
-      type: "break",
+      type: 'break',
       children: [
         {
-          type: "text",
-          text: "",
+          type: 'text',
+          text: '',
         },
       ],
     };
@@ -397,73 +398,71 @@ export const remarkToSlate = (
 
   const phrashingMark = (
     node: Md.PhrasingContent,
-    marks: ("strikethrough" | "bold" | "italic" | "code")[] = []
+    marks: ('strikethrough' | 'bold' | 'italic' | 'code')[] = []
   ): Plate.InlineElement[] => {
     const accum: Plate.InlineElement[] = [];
     switch (node.type) {
-      case "emphasis": {
+      case 'emphasis': {
         const children = flatten(
-          node.children.map((child) =>
-            phrashingMark(child, [...marks, "italic"])
-          )
+          node.children.map(child => phrashingMark(child, [...marks, 'italic']))
         );
-        children.forEach((child) => {
+        children.forEach(child => {
           accum.push(child);
         });
         break;
       }
-      case "inlineCode": {
+      case 'inlineCode': {
         const markProps: { [key: string]: boolean } = {};
-        marks.forEach((mark) => (markProps[mark] = true));
+        marks.forEach(mark => (markProps[mark] = true));
         accum.push({
-          type: "text",
+          type: 'text',
           text: node.value,
           code: true,
           ...markProps,
         });
         break;
       }
-      case "delete": {
+      case 'delete': {
         const children = flatten(
-          node.children.map((child) =>
-            phrashingMark(child, [...marks, "strikethrough"])
+          node.children.map(child =>
+            phrashingMark(child, [...marks, 'strikethrough'])
           )
         );
-        children.forEach((child) => {
+        children.forEach(child => {
           accum.push(child);
         });
         break;
       }
 
-      case "strong": {
+      case 'strong': {
         const children = flatten(
-          node.children.map((child) => phrashingMark(child, [...marks, "bold"]))
+          node.children.map(child => phrashingMark(child, [...marks, 'bold']))
         );
-        children.forEach((child) => {
+        children.forEach(child => {
           accum.push(child);
         });
         break;
       }
-      case "image": {
+      case 'image': {
         accum.push(image(node));
         break;
       }
-      case "link": {
+      case 'link': {
         const children = flatten(
-          node.children.map((child) => phrashingMark(child, marks))
+          node.children.map(child => phrashingMark(child, marks))
         );
         accum.push({
-          type: "a",
+          type: 'a',
           url: sanitizeUrl(node.url),
           title: node.title,
           children,
         });
         break;
       }
-      case "text":
+      case 'text':
         const markProps: { [key: string]: boolean } = {};
-        marks.forEach((mark) => (markProps[mark] = true));
-        accum.push({ type: "text", text: node.value, ...markProps });
+        marks.forEach(mark => (markProps[mark] = true));
+        accum.push({ type: 'text', text: node.value, ...markProps });
         break;
       /**
        * Eg. this is a line break
@@ -471,7 +470,7 @@ export const remarkToSlate = (
        * _Some italicized
        * text on 2 lines_
        */
-      case "break":
+      case 'break':
         accum.push(breakContent());
         break;
       default:
@@ -487,29 +486,29 @@ export const remarkToSlate = (
 
   const image = (content: Md.Image): Plate.ImageElement => {
     return {
-      type: "img",
+      type: 'img',
       url: imageCallback(content.url),
       alt: content.alt || undefined, // alt cannot be `null`
       caption: content.title,
-      children: [{ type: "text", text: "" }],
+      children: [{ type: 'text', text: '' }],
     };
   };
   const text = (content: Md.Text): Plate.TextElement => {
     return {
-      type: "text",
+      type: 'text',
       text: content.value,
     };
   };
   const blockquote = (content: Md.Blockquote): Plate.BlockquoteElement => {
     const children: Plate.InlineElement[] = [];
-    content.children.map((child) => {
+    content.children.map(child => {
       const inlineElements = unwrapBlockContent(child);
-      inlineElements.forEach((child) => {
+      inlineElements.forEach(child => {
         children.push(child);
       });
     });
     return {
-      type: "blockquote",
+      type: 'blockquote',
       children,
     };
   };
@@ -522,23 +521,23 @@ export const remarkToSlate = (
     // TODO: probably need to do the same with JSX
     if (children.length === 1) {
       if (children[0]) {
-        if (children[0].type === "html_inline") {
+        if (children[0].type === 'html_inline') {
           return {
             ...children[0],
-            type: "html",
+            type: 'html',
           };
         }
       }
     }
     return {
-      type: "p",
+      type: 'p',
       children,
     };
   };
 
   return {
-    type: "root",
-    children: root.children.map((child) => {
+    type: 'root',
+    children: root.children.map(child => {
       // @ts-ignore child from MDX elements aren't shared with MDAST types
       return content(child);
     }),
@@ -556,7 +555,7 @@ export class RichTextParseError extends Error {
       Error.captureStackTrace(this, RichTextParseError);
     }
 
-    this.name = "RichTextParseError";
+    this.name = 'RichTextParseError';
     // Custom debugging information
     this.position = position;
   }
@@ -564,8 +563,8 @@ export class RichTextParseError extends Error {
 
 // Prevent javascript scheme (eg. `javascript:alert(document.domain)`)
 export const sanitizeUrl = (url: string | undefined) => {
-  const allowedSchemes = ["http", "https", "mailto", "tel", "xref"];
-  if (!url) return "";
+  const allowedSchemes = ['http', 'https', 'mailto', 'tel', 'xref'];
+  if (!url) return '';
 
   let parsedUrl: URL | null = null;
 
@@ -578,7 +577,7 @@ export const sanitizeUrl = (url: string | undefined) => {
   const scheme = parsedUrl.protocol.slice(0, -1);
   if (allowedSchemes && !allowedSchemes.includes(scheme)) {
     console.warn(`Invalid URL scheme detected ${scheme}`);
-    return "";
+    return '';
   }
 
   /**
@@ -591,8 +590,8 @@ export const sanitizeUrl = (url: string | undefined) => {
    * http://example.com/a/b -> http://example.com/a/b
    * http://example.com/a/b/ -> http://example.com/a/b/
    */
-  if (parsedUrl.pathname === "/") {
-    if (url.endsWith("/")) {
+  if (parsedUrl.pathname === '/') {
+    if (url.endsWith('/')) {
       return parsedUrl.href;
     }
     // Include search (query parameters) and hash if they exist

@@ -1,20 +1,20 @@
-import { RootElement } from "@/core/parser/plate";
-import { stringifyMDX } from "@/core/stringify";
-import { expect, it } from "vitest";
-import * as util from "../../util";
-import { field } from "./field";
+import { RootElement } from '@/core/parser/plateHandler';
+import { stringifyMDX } from '@/core/stringify';
+import { expect, it } from 'vitest';
+import * as util from '../../util';
+import { field } from './field';
 
-it("matches input", () => {
+it('matches input', () => {
   const tree: RootElement = {
-    type: "root",
+    type: 'root',
     children: [
       {
-        type: "mdxJsxFlowElement",
-        name: "Cta",
+        type: 'mdxJsxFlowElement',
+        name: 'Cta',
         children: [
           {
-            type: "text",
-            text: "",
+            type: 'text',
+            text: '',
           },
         ],
         props: {
@@ -24,6 +24,6 @@ it("matches input", () => {
     ],
   };
 
-  const string = stringifyMDX(tree, field, (v) => v);
+  const string = stringifyMDX(tree, field, v => v);
   expect(string).toMatchFile(util.mdPath(__dirname));
 });

@@ -1,12 +1,11 @@
-import type * as Plate from "@/core/parser/plate";
-import type { RootElement } from "@/core/parser/plate";
-import type { RichTextField } from "@/types";
-import type * as Md from "mdast";
-import { stringifyProps } from "./acorn";
-import { eat } from "./marks";
+import type * as Plate from '@/core/parser/plateHandler';
+import type { RichTextField } from '@/types';
+import type * as Md from 'mdast';
+import { stringifyProps } from './acorn';
+import { eat } from './marks';
 
 export const preProcess = (
-  tree: RootElement,
+  tree: Plate.RootElement,
   field: RichTextField,
   imageCallback: (url: string) => string
 ) => {
@@ -20,14 +19,14 @@ export const rootElement = (
   imageCallback: (url: string) => string
 ): Md.Root => {
   const children: Md.Content[] = [];
-  content.children?.forEach((child) => {
+  content.children?.forEach(child => {
     const value = blockElement(child, field, imageCallback);
     if (value) {
       children.push(value);
     }
   });
   return {
-    type: "root",
+    type: 'root',
     children,
   };
 };
@@ -38,62 +37,62 @@ export const blockElement = (
   imageCallback: (url: string) => string
 ): Md.Content | null => {
   switch (content.type) {
-    case "h1":
-    case "h2":
-    case "h3":
-    case "h4":
-    case "h5":
-    case "h6":
+    case 'h1':
+    case 'h2':
+    case 'h3':
+    case 'h4':
+    case 'h5':
+    case 'h6':
       return {
-        type: "heading",
+        type: 'heading',
         // @ts-ignore Type 'number' is not assignable to type '1 | 2 | 3 | 4 | 5 | 6'
         depth: { h1: 1, h2: 2, h3: 3, h4: 4, h5: 5, h6: 6 }[content.type],
         children: eat(content.children, field, imageCallback),
       };
-    case "p":
+    case 'p':
       // Ignore empty blocks
       if (content.children.length === 1) {
         const onlyChild = content.children[0];
         if (
           onlyChild &&
           // Slate text nodes don't get a `type` property for text nodes
-          (onlyChild.type === "text" || !onlyChild.type) &&
-          onlyChild.text === ""
+          (onlyChild.type === 'text' || !onlyChild.type) &&
+          onlyChild.text === ''
         ) {
           return null;
         }
       }
       return {
-        type: "paragraph",
+        type: 'paragraph',
         children: eat(content.children, field, imageCallback),
       };
-    case "mermaid":
+    case 'mermaid':
       return {
-        type: "code",
-        lang: "mermaid",
+        type: 'code',
+        lang: 'mermaid',
         value: content.value,
       };
-    case "code_block":
+    case 'code_block':
       return {
-        type: "code",
+        type: 'code',
         lang: content.lang,
         value: content.value,
       };
-    case "mdxJsxFlowElement":
-      if (content.name === "table") {
+    case 'mdxJsxFlowElement':
+      if (content.name === 'table') {
         const table = content.props as {
           align: Md.AlignType[] | undefined;
           tableRows: { tableCells: { value: any }[] }[];
         };
         return {
-          type: "table",
+          type: 'table',
           align: table.align,
-          children: table.tableRows.map((tableRow) => {
+          children: table.tableRows.map(tableRow => {
             const tr: Md.TableRow = {
-              type: "tableRow",
+              type: 'tableRow',
               children: tableRow.tableCells.map(({ value }) => {
                 return {
-                  type: "tableCell",
+                  type: 'tableCell',
                   children: eat(
                     value?.children?.at(0)?.children || [],
                     field,
@@ -109,70 +108,70 @@ export const blockElement = (
       const { children, attributes, useDirective, directiveType } =
         stringifyProps(content, field, false, imageCallback);
       return {
-        type: "mdxJsxFlowElement",
+        type: 'mdxJsxFlowElement',
         name: content.name,
         attributes: attributes,
         children: children,
       };
-    case "blockquote":
+    case 'blockquote':
       return {
-        type: "blockquote",
+        type: 'blockquote',
         children: [
           {
-            type: "paragraph",
+            type: 'paragraph',
             children: eat(content.children, field, imageCallback),
           },
         ],
       };
-    case "hr":
+    case 'hr':
       return {
-        type: "thematicBreak",
+        type: 'thematicBreak',
       };
-    case "ol":
-    case "ul":
+    case 'ol':
+    case 'ul':
       return {
-        type: "list",
-        ordered: content.type === "ol",
+        type: 'list',
+        ordered: content.type === 'ol',
         spread: false,
-        children: content.children.map((child) =>
+        children: content.children.map(child =>
           listItemElement(child, field, imageCallback)
         ),
       };
-    case "html": {
+    case 'html': {
       return {
-        type: "html",
+        type: 'html',
         value: content.value,
       };
     }
-    case "img":
+    case 'img':
       // Slate editor treats `img` as a block-level element, wrap
       // it in an empty paragraph
       return {
-        type: "paragraph",
+        type: 'paragraph',
         children: [
           {
-            type: "image",
+            type: 'image',
             url: imageCallback(content.url),
             alt: content.alt,
             title: content.caption,
           },
         ],
       };
-    case "table":
+    case 'table':
       const table = content.props as
         | {
             align: Md.AlignType[] | undefined;
           }
         | undefined;
       return {
-        type: "table",
+        type: 'table',
         align: table?.align,
-        children: content.children.map((tableRow) => {
+        children: content.children.map(tableRow => {
           return {
-            type: "tableRow",
-            children: tableRow.children.map((tableCell) => {
+            type: 'tableRow',
+            children: tableRow.children.map(tableCell => {
               return {
-                type: "tableCell",
+                type: 'tableCell',
                 children: eat(
                   tableCell.children?.at(0)?.children || [],
                   field,
@@ -193,14 +192,14 @@ const listItemElement = (
   imageCallback: (url: string) => string
 ): Md.ListItem => {
   return {
-    type: "listItem",
+    type: 'listItem',
     // spread is always false since we don't support block elements in list items
     // good explanation of the difference: https://stackoverflow.com/questions/43503528/extra-lines-appearing-between-list-items-in-github-markdown
     spread: false,
-    children: content.children.map((child) => {
-      if (child.type === "lic") {
+    children: content.children.map(child => {
+      if (child.type === 'lic') {
         return {
-          type: "paragraph",
+          type: 'paragraph',
           children: eat(child.children, field, imageCallback),
         };
       }
@@ -214,27 +213,27 @@ const blockContentElement = (
   imageCallback: (url: string) => string
 ): Md.BlockContent => {
   switch (content.type) {
-    case "blockquote":
+    case 'blockquote':
       return {
-        type: "blockquote",
-        children: content.children.map((child) =>
+        type: 'blockquote',
+        children: content.children.map(child =>
           // FIXME: text nodes are probably passed in here by the rich text editor
           // @ts-ignore
           blockContentElement(child, field, imageCallback)
         ),
       };
-    case "p":
+    case 'p':
       return {
-        type: "paragraph",
+        type: 'paragraph',
         children: eat(content.children, field, imageCallback),
       };
-    case "ol":
-    case "ul":
+    case 'ol':
+    case 'ul':
       return {
-        type: "list",
-        ordered: content.type === "ol",
+        type: 'list',
+        ordered: content.type === 'ol',
         spread: false,
-        children: content.children.map((child) =>
+        children: content.children.map(child =>
           listItemElement(child, field, imageCallback)
         ),
       };

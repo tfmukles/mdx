@@ -1,11 +1,11 @@
-import type { RichTextField } from "@/types";
-import type * as Md from "mdast";
-import type * as Plate from "../../core/parser/plate";
-import { getMarks } from "../../core/stringify";
-import { stringifyPropsInline } from "./acorn";
+import type * as Plate from '@/core/parser/plateHandler';
+import { getMarks } from '@/core/stringify';
+import type { RichTextField } from '@/types';
+import type * as Md from 'mdast';
+import { stringifyPropsInline } from './acorn';
 
 const matches = (a: string[], b: string[]) => {
-  return a.some((v) => b.includes(v));
+  return a.some(v => b.includes(v));
 };
 
 type InlineElementWithCallback = Plate.InlineElement & {
@@ -14,16 +14,16 @@ type InlineElementWithCallback = Plate.InlineElement & {
 
 const replaceLinksWithTextNodes = (content: Plate.InlineElement[]) => {
   const newItems: InlineElementWithCallback[] = [];
-  content?.forEach((item) => {
-    if (item.type === "a") {
+  content?.forEach(item => {
+    if (item.type === 'a') {
       if (item.children.length === 1) {
         const firstChild = item.children[0];
-        if (firstChild?.type === "text") {
+        if (firstChild?.type === 'text') {
           newItems.push({
             ...firstChild,
-            linkifyTextNode: (a) => {
+            linkifyTextNode: a => {
               return {
-                type: "link",
+                type: 'link',
                 url: item.url,
                 title: item.title,
                 children: [a],
@@ -52,22 +52,22 @@ const inlineElementExceptLink = (
   imageCallback: (url: string) => string
 ): Md.PhrasingContent => {
   switch (content.type) {
-    case "a":
+    case 'a':
       throw new Error(
         `Unexpected node of type "a", link elements should be processed after all inline elements have resolved`
       );
-    case "img":
+    case 'img':
       return {
-        type: "image",
+        type: 'image',
         url: imageCallback(content.url),
         alt: content.alt,
         title: content.caption,
       };
-    case "break":
+    case 'break':
       return {
-        type: "break",
+        type: 'break',
       };
-    case "mdxJsxTextElement": {
+    case 'mdxJsxTextElement': {
       const { attributes, children } = stringifyPropsInline(
         content,
         field,
@@ -77,27 +77,27 @@ const inlineElementExceptLink = (
       if (children.length) {
         const firstChild = children[0];
         // @ts-ignore FIXME: we're going outside of the MDAST type, which can include a paragraph here
-        if (firstChild && firstChild.type === "paragraph") {
+        if (firstChild && firstChild.type === 'paragraph') {
           // @ts-ignore
           c = firstChild.children;
         }
       }
       return {
-        type: "mdxJsxTextElement",
+        type: 'mdxJsxTextElement',
         name: content.name,
         attributes,
         children: c,
       };
     }
-    case "html_inline": {
+    case 'html_inline': {
       return {
-        type: "html",
+        type: 'html',
         value: content.value,
       };
     }
     default:
       // @ts-expect-error
-      if (!content.type && typeof content.text === "string") {
+      if (!content.type && typeof content.text === 'string') {
         return text(content);
       }
       throw new Error(`InlineElement: ${content.type} is not supported`);
@@ -106,7 +106,7 @@ const inlineElementExceptLink = (
 
 const text = (content: { text: string }) => {
   return {
-    type: "text" as const,
+    type: 'text' as const,
     value: content.text,
   };
 };
@@ -121,11 +121,11 @@ export const eat = (
   if (!first) {
     return [];
   }
-  if (first && first?.type !== "text") {
-    if (first.type === "a") {
+  if (first && first?.type !== 'text') {
+    if (first.type === 'a') {
       return [
         {
-          type: "link",
+          type: 'link',
           url: first.url,
           title: first.title,
           children: eat(
@@ -171,9 +171,9 @@ export const eat = (
   }
   const matchingSiblings = content.slice(1, nonMatchingSiblingIndex + 1);
   const markCounts: {
-    [key in "strong" | "emphasis" | "inlineCode" | "delete"]?: number;
+    [key in 'strong' | 'emphasis' | 'inlineCode' | 'delete']?: number;
   } = {};
-  marks.forEach((mark) => {
+  marks.forEach(mark => {
     let count = 1;
     matchingSiblings.every((sibling, index) => {
       if (getMarks(sibling).includes(mark)) {
@@ -184,10 +184,10 @@ export const eat = (
     markCounts[mark] = count;
   });
   let count = 0;
-  let markToProcess: "strong" | "emphasis" | "inlineCode" | "delete" | null =
+  let markToProcess: 'strong' | 'emphasis' | 'inlineCode' | 'delete' | null =
     null;
   Object.entries(markCounts).forEach(([mark, markCount]) => {
-    const m = mark as "strong" | "emphasis" | "inlineCode";
+    const m = mark as 'strong' | 'emphasis' | 'inlineCode';
     if (markCount > count) {
       count = markCount;
       markToProcess = m;
@@ -196,7 +196,7 @@ export const eat = (
   if (!markToProcess) {
     return [text(first), ...eat(content.slice(1), field, imageCallback)];
   }
-  if (markToProcess === "inlineCode") {
+  if (markToProcess === 'inlineCode') {
     if (nonMatchingSiblingIndex) {
       throw new Error(`Marks inside inline code are not supported`);
     }
@@ -214,7 +214,7 @@ export const eat = (
       type: markToProcess,
       children: eat(
         [
-          ...[first, ...matchingSiblings].map((sibling) =>
+          ...[first, ...matchingSiblings].map(sibling =>
             cleanNode(sibling, markToProcess)
           ),
         ],
@@ -228,17 +228,17 @@ export const eat = (
 
 const cleanNode = (
   node: InlineElementWithCallback,
-  mark: "strong" | "emphasis" | "inlineCode" | "delete" | null
+  mark: 'strong' | 'emphasis' | 'inlineCode' | 'delete' | null
 ): Plate.InlineElement => {
   if (!mark) {
     return node;
   }
   const cleanedNode: Record<string, unknown> = {};
   const markToClear = {
-    strong: "bold",
-    emphasis: "italic",
-    inlineCode: "code",
-    delete: "strikethrough",
+    strong: 'bold',
+    emphasis: 'italic',
+    inlineCode: 'code',
+    delete: 'strikethrough',
   }[mark];
   Object.entries(node).map(([key, value]) => {
     if (key !== markToClear) {

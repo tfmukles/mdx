@@ -9,9 +9,9 @@ import { parseMDX as parseMDXNext } from '../../next';
 import { sitepinsDirective } from '../extensions/sitepins-shortcodes/extension';
 import { directiveFromMarkdown } from '../extensions/sitepins-shortcodes/from-markdown';
 import type { Pattern } from '../stringify';
-import { parseShortcode } from './parseShortcode';
-import type * as Plate from './plate';
-import { remarkToSlate, RichTextParseError } from './remarkToPlate';
+import type * as Plate from './plateHandler';
+import { remarkToSlate, RichTextParseError } from './remarkConverter';
+import { parseShortcode } from './shortcodeManager';
 
 export const markdownToAst = (value: string, field: RichTextType) => {
   const patterns: Pattern[] = [];

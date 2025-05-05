@@ -1,4 +1,4 @@
-import { parseMDX } from '@/core/parser';
+import { parseMDX } from '@/core/parser/mainParser';
 import { stringifyMDX } from '@/core/stringify';
 import { expect, it } from 'vitest';
 import * as util from '../../util';

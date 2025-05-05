@@ -3,8 +3,8 @@
 
 
 */
-import { it, expect, describe } from 'vitest';
-import { parseShortcode } from './parseShortcode';
+import { describe, expect, it } from 'vitest';
+import { parseShortcode } from './shortcodeManager';
 
 describe('parseShortcode', () => {
   describe('with keyed field', () => {

@@ -4,10 +4,11 @@ import prettier from 'prettier/esm/standalone.mjs';
 import type { Field, RichTextField, RichTextTemplate } from '@/types';
 import type * as Md from 'mdast';
 import type { MdxJsxAttribute } from 'mdast-util-mdx-jsx';
+
+import * as Plate from '@/core/parser/plateHandler';
 // @ts-ignore Fix this by updating prettier
 import parser from 'prettier/esm/parser-espree.mjs';
 import { rootElement, stringifyMDX } from '.';
-import * as Plate from '../parser/plate';
 
 export const stringifyPropsInline = (
   element: Plate.MdxInlineElement,

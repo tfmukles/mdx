@@ -4,9 +4,9 @@ import { LeafDirective } from 'mdast-util-directive/lib';
 import type { MdxJsxFlowElement, MdxJsxTextElement } from 'mdast-util-mdx-jsx';
 import { source } from 'unist-util-source';
 import { toSitepinsMarkdown } from '../stringify';
-import { extractAttributes } from './acorn';
-import type * as Plate from './plate';
-import { remarkToSlate, RichTextParseError } from './remarkToPlate';
+import { extractAttributes } from './acornEngine';
+import type * as Plate from './plateHandler';
+import { remarkToSlate, RichTextParseError } from './remarkConverter';
 
 export function mdxJsxElement(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

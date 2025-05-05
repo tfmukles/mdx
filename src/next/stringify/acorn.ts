@@ -1,14 +1,14 @@
 // @ts-ignore TODO: Fix this
-import prettier from "prettier/esm/standalone.mjs";
+import prettier from 'prettier/esm/standalone.mjs';
 // @ts-ignore TODO: Fix this
-import type { RichTextField, RichTextTemplate } from "@/types";
-import type * as Md from "mdast";
-import type { MdxJsxAttribute } from "mdast-util-mdx-jsx";
+import * as Plate from '@/core/parser/plateHandler';
+import type { RichTextField, RichTextTemplate } from '@/types';
+import type * as Md from 'mdast';
+import type { MdxJsxAttribute } from 'mdast-util-mdx-jsx';
 // @ts-ignore TODO: Fix this
-import parser from "prettier/esm/parser-espree.mjs";
-import { stringifyMDX } from ".";
-import * as Plate from "../../core/parser/plate";
-import { rootElement } from "./pre-processing";
+import parser from 'prettier/esm/parser-espree.mjs';
+import { stringifyMDX } from '.';
+import { rootElement } from './pre-processing';
 
 export const stringifyPropsInline = (
   element: Plate.MdxInlineElement,
@@ -54,78 +54,78 @@ export function stringifyProps(
   const children: Md.Content[] = [];
   let template: RichTextTemplate | undefined | string;
   let useDirective = false;
-  let directiveType = "leaf";
-  template = parentField.templates?.find((template) => {
-    if (typeof template === "string") {
-      throw new Error("Global templates not supported");
+  let directiveType = 'leaf';
+  template = parentField.templates?.find(template => {
+    if (typeof template === 'string') {
+      throw new Error('Global templates not supported');
     }
     return template.name === element.name;
   });
   if (!template) {
-    template = parentField.templates?.find((template) => {
+    template = parentField.templates?.find(template => {
       const templateName = template?.match?.name;
       return templateName === element.name;
     });
   }
-  if (!template || typeof template === "string") {
+  if (!template || typeof template === 'string') {
     throw new Error(`Unable to find template for JSX element ${element.name}`);
   }
-  if (template.fields.find((f) => f.name === "children")) {
-    directiveType = "block";
+  if (template.fields.find(f => f.name === 'children')) {
+    directiveType = 'block';
   }
   useDirective = !!template.match;
   Object.entries(element.props).forEach(([name, value]) => {
-    if (typeof template === "string") {
+    if (typeof template === 'string') {
       throw new Error(`Unable to find template for JSX element ${name}`);
     }
-    const field = template?.fields?.find((field) => field.name === name);
+    const field = template?.fields?.find(field => field.name === name);
     if (!field) {
-      if (name === "children") {
+      if (name === 'children') {
         return;
       }
       return;
       // throw new Error(`No field definition found for property ${name}`)
     }
     switch (field.type) {
-      case "reference":
+      case 'reference':
         if (field.list) {
           if (Array.isArray(value)) {
             attributes.push({
-              type: "mdxJsxAttribute",
+              type: 'mdxJsxAttribute',
               name,
               value: {
-                type: "mdxJsxAttributeValueExpression",
-                value: `[${value.map((item) => `"${item}"`).join(", ")}]`,
+                type: 'mdxJsxAttributeValueExpression',
+                value: `[${value.map(item => `"${item}"`).join(', ')}]`,
               },
             });
           }
         } else {
-          if (typeof value === "string") {
+          if (typeof value === 'string') {
             attributes.push({
-              type: "mdxJsxAttribute",
+              type: 'mdxJsxAttribute',
               name,
               value: value,
             });
           }
         }
         break;
-      case "datetime":
-      case "string":
+      case 'datetime':
+      case 'string':
         if (field.list) {
           if (Array.isArray(value)) {
             attributes.push({
-              type: "mdxJsxAttribute",
+              type: 'mdxJsxAttribute',
               name,
               value: {
-                type: "mdxJsxAttributeValueExpression",
-                value: `[${value.map((item) => `"${item}"`).join(", ")}]`,
+                type: 'mdxJsxAttributeValueExpression',
+                value: `[${value.map(item => `"${item}"`).join(', ')}]`,
               },
             });
           }
         } else {
-          if (typeof value === "string") {
+          if (typeof value === 'string') {
             attributes.push({
-              type: "mdxJsxAttribute",
+              type: 'mdxJsxAttribute',
               name,
               value: value,
             });
@@ -136,64 +136,64 @@ export function stringifyProps(
           }
         }
         break;
-      case "image":
+      case 'image':
         if (field.list) {
           if (Array.isArray(value)) {
             attributes.push({
-              type: "mdxJsxAttribute",
+              type: 'mdxJsxAttribute',
               name,
               value: {
-                type: "mdxJsxAttributeValueExpression",
+                type: 'mdxJsxAttributeValueExpression',
                 value: `[${value
-                  .map((item) => `"${imageCallback(item)}"`)
-                  .join(", ")}]`,
+                  .map(item => `"${imageCallback(item)}"`)
+                  .join(', ')}]`,
               },
             });
           }
         } else {
           attributes.push({
-            type: "mdxJsxAttribute",
+            type: 'mdxJsxAttribute',
             name,
             value: imageCallback(String(value)),
           });
         }
         break;
-      case "number":
-      case "boolean":
+      case 'number':
+      case 'boolean':
         if (field.list) {
           if (Array.isArray(value)) {
             attributes.push({
-              type: "mdxJsxAttribute",
+              type: 'mdxJsxAttribute',
               name,
               value: {
-                type: "mdxJsxAttributeValueExpression",
-                value: `[${value.map((item) => `${item}`).join(", ")}]`,
+                type: 'mdxJsxAttributeValueExpression',
+                value: `[${value.map(item => `${item}`).join(', ')}]`,
               },
             });
           }
         } else {
           attributes.push({
-            type: "mdxJsxAttribute",
+            type: 'mdxJsxAttribute',
             name,
             value: {
-              type: "mdxJsxAttributeValueExpression",
+              type: 'mdxJsxAttributeValueExpression',
               value: String(value),
             },
           });
         }
         break;
-      case "object":
+      case 'object':
         attributes.push({
-          type: "mdxJsxAttribute",
+          type: 'mdxJsxAttribute',
           name,
           value: {
-            type: "mdxJsxAttributeValueExpression",
+            type: 'mdxJsxAttributeValueExpression',
             value: stringifyObj(value, flatten),
           },
         });
         break;
-      case "rich-text":
-        if (typeof value === "string") {
+      case 'rich-text':
+        if (typeof value === 'string') {
           throw new Error(
             `Unexpected string for rich-text, ensure the value has been properly parsed`
           );
@@ -201,16 +201,16 @@ export function stringifyProps(
         if (field.list) {
           throw new Error(`Rich-text list is not supported`);
         } else {
-          const joiner = flatten ? " " : "\n";
-          let val = "";
+          const joiner = flatten ? ' ' : '\n';
+          let val = '';
           assertShape<Plate.RootElement>(
             value,
-            (value) => value.type === "root" && Array.isArray(value.children),
+            value => value.type === 'root' && Array.isArray(value.children),
             `Nested rich-text element is not a valid shape for field ${field.name}`
           );
-          if (field.name === "children") {
+          if (field.name === 'children') {
             const root = rootElement(value, field, imageCallback);
-            root.children.forEach((child) => {
+            root.children.forEach(child => {
               children.push(child);
             });
             return;
@@ -219,26 +219,26 @@ export function stringifyProps(
             if (stringValue) {
               val = stringValue
                 .trim()
-                .split("\n")
-                .map((str) => `  ${str.trim()}`)
+                .split('\n')
+                .map(str => `  ${str.trim()}`)
                 .join(joiner);
             }
           }
           if (flatten) {
             attributes.push({
-              type: "mdxJsxAttribute",
+              type: 'mdxJsxAttribute',
               name,
               value: {
-                type: "mdxJsxAttributeValueExpression",
+                type: 'mdxJsxAttributeValueExpression',
                 value: `<>${val.trim()}</>`,
               },
             });
           } else {
             attributes.push({
-              type: "mdxJsxAttribute",
+              type: 'mdxJsxAttribute',
               name,
               value: {
-                type: "mdxJsxAttributeValueExpression",
+                type: 'mdxJsxAttributeValueExpression',
                 value: `<>\n${val}\n</>`,
               },
             });
@@ -260,11 +260,11 @@ export function stringifyProps(
           ? (children as any)
           : [
               {
-                type: "paragraph",
+                type: 'paragraph',
                 children: [
                   {
-                    type: "text",
-                    value: "",
+                    type: 'text',
+                    value: '',
                   },
                 ],
               },
@@ -279,18 +279,18 @@ export function stringifyProps(
  * Use prettier to determine how to format potentially large objects as strings
  */
 function stringifyObj(obj: unknown, flatten: boolean) {
-  if (typeof obj === "object" && obj !== null) {
+  if (typeof obj === 'object' && obj !== null) {
     const dummyFunc = `const dummyFunc = `;
     const res = prettier
       .format(`${dummyFunc}${JSON.stringify(obj)}`, {
-        parser: "acorn",
-        trailingComma: "none",
+        parser: 'acorn',
+        trailingComma: 'none',
         semi: false,
         plugins: [parser],
       })
       .trim()
-      .replace(dummyFunc, "");
-    return flatten ? res.replaceAll("\n", "").replaceAll("  ", " ") : res;
+      .replace(dummyFunc, '');
+    return flatten ? res.replaceAll('\n', '').replaceAll('  ', ' ') : res;
   } else {
     throw new Error(
       `stringifyObj must be passed an object or an array of objects, received ${typeof obj}`

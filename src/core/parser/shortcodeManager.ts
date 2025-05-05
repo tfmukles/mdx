@@ -1,11 +1,5 @@
-/**
-
-
-
-*/
-
 import { Field, RichTextTemplate } from '@/types';
-import { replaceAll } from '.';
+import { replaceAll } from './mainParser';
 
 export function parseShortcode(
   preprocessedString: string,
