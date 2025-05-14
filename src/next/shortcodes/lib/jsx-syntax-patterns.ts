@@ -1,15 +1,15 @@
-import { jsxText } from './jsx-text';
-import { jsxFlow } from './jsx-flow';
-import { findCode } from './util';
-import type { Construct, Extension } from 'micromark-util-types';
-import type { Acorn, AcornOptions } from 'micromark-factory-mdx-expression';
+import type { Acorn, AcornOptions } from "micromark-factory-mdx-expression";
+import type { Construct, Extension } from "micromark-util-types";
+import { jsxFlow } from "./jsx-block-parser";
+import { jsxText } from "./jsx-inline-parser";
+import { findCode } from "./jsx-parser-utils";
 
 export type Pattern = {
   start: string;
   end: string;
   name: string;
   templateName: string;
-  type: 'inline' | 'flow';
+  type: "inline" | "flow";
   leaf: boolean;
 };
 
@@ -29,18 +29,18 @@ export function mdxJsx(options: Options = {}): Extension {
   if (acorn) {
     if (!acorn.parse || !acorn.parseExpressionAt) {
       throw new Error(
-        'Expected a proper `acorn` instance passed in as `options.acorn`'
+        "Expected a proper `acorn` instance passed in as `options.acorn`"
       );
     }
 
     acornOptions = Object.assign(
-      { ecmaVersion: 2020, sourceType: 'module' },
+      { ecmaVersion: 2020, sourceType: "module" },
       options.acornOptions,
       { locations: true }
     );
   } else if (options.acornOptions || options.addResult) {
     throw new Error(
-      'Expected an `acorn` instance passed in as `options.acorn`'
+      "Expected an `acorn` instance passed in as `options.acorn`"
     );
   }
 
@@ -54,7 +54,7 @@ export function mdxJsx(options: Options = {}): Extension {
       return;
     }
 
-    if (pattern.type === 'flow') {
+    if (pattern.type === "flow") {
       const existing = flowRules[firstCharacter];
       flowRules[firstCharacter] = existing
         ? [
@@ -75,7 +75,7 @@ export function mdxJsx(options: Options = {}): Extension {
 
   let disabledTokens: string[] = [];
   if (options.skipHTML) {
-    disabledTokens = ['htmlFlow', 'htmlText'];
+    disabledTokens = ["htmlFlow", "htmlText"];
   }
   return {
     flow: flowRules,

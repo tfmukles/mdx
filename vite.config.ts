@@ -1,3 +1,4 @@
+import path from "path";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 
@@ -61,6 +62,7 @@ export default defineConfig({
   assetsInclude: ["**/*.md"],
   resolve: {
     alias: {
+      "@": path.resolve(__dirname, "./src"),
       "^.*\\.md\\?raw$": "$&",
     },
   },

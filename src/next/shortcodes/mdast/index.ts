@@ -28,7 +28,7 @@ import { parseEntities } from "parse-entities";
 import { stringifyEntitiesLight } from "stringify-entities";
 import { stringifyPosition } from "unist-util-stringify-position";
 import { VFileMessage } from "vfile-message";
-import { Pattern } from "../lib/syntax";
+import { Pattern } from "../lib/jsx-syntax-patterns";
 
 type Tag = {
   name: string | undefined;
@@ -461,14 +461,6 @@ export function mdxJsxFromMarkdown({ patterns }: { patterns: Pattern[] }) {
   };
 }
 
-/**
- * Create an extension for `mdast-util-to-markdown` to enable MDX JSX.
- *
- * This extension configures `mdast-util-to-markdown` with
- * `options.fences: true` and `options.resourceLink: true` too, do not
- * overwrite them!
- *
- */
 export const mdxJsxToMarkdown = function (
   options: Options & {
     printWidth?: number;

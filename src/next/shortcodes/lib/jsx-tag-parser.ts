@@ -24,8 +24,8 @@ import type {
 } from "micromark-util-types";
 import { ok as assert } from "uvu/assert";
 import { VFileMessage } from "vfile-message";
-import { Pattern } from "./syntax";
-import { findCode } from "./util";
+import { findCode } from "./jsx-parser-utils";
+import { Pattern } from "./jsx-syntax-patterns";
 
 export function factoryTag(
   this: TokenizeContext,
