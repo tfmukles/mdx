@@ -9,9 +9,12 @@ import { parseMDX as parseMDXNext } from "../../next";
 import { sitepinsDirective } from "../extensions/sitepins-shortcodes/directive-extension";
 import { directiveFromMarkdown } from "../extensions/sitepins-shortcodes/directive-from-markdown";
 import type { Pattern } from "../stringify";
-import type * as Plate from "./plateTypes";
-import { remarkToSlate, RichTextParseError } from "./remarkPlateConverter";
-import { parseShortcode } from "./shortcodeParser";
+import { parseShortcode } from "./parsers/shortcodeParser";
+import {
+  remarkToSlate,
+  RichTextParseError,
+} from "./transformers/remarkPlateConverter";
+import type * as Plate from "./types/plateTypes";
 
 const createPatternFromTemplate = (template: any): Pattern | null => {
   if (typeof template === "string") {

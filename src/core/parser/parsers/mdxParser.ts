@@ -1,12 +1,15 @@
-import type * as Plate from "@/core/parser/plateTypes";
+import type * as Plate from "@/core/parser/types/plateTypes";
+import { toSitepinsMarkdown } from "@/core/stringify";
 import type { RichTextType } from "@/types";
 import { ContainerDirective } from "mdast-util-directive";
 import { LeafDirective } from "mdast-util-directive/lib";
 import type { MdxJsxFlowElement, MdxJsxTextElement } from "mdast-util-mdx-jsx";
 import { source } from "unist-util-source";
-import { toSitepinsMarkdown } from "../stringify";
+import {
+  remarkToSlate,
+  RichTextParseError,
+} from "../transformers/remarkPlateConverter";
 import { extractAttributes } from "./attributeExtractor";
-import { remarkToSlate, RichTextParseError } from "./remarkPlateConverter";
 
 function findTemplate(node: { name: string | null }, field: RichTextType) {
   if (!node.name) return undefined;

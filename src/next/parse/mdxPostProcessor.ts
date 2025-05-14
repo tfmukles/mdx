@@ -2,7 +2,7 @@ import { RichTextField } from "@/types";
 import type { Root } from "mdast";
 import { MdxJsxFlowElement, MdxJsxTextElement } from "mdast-util-mdx-jsx";
 import { visit } from "unist-util-visit";
-import { remarkToSlate } from "../../core/parser/remarkPlateConverter";
+import { remarkToSlate } from "../../core/parser/transformers/remarkPlateConverter";
 
 export const postProcessor = (
   tree: Root,

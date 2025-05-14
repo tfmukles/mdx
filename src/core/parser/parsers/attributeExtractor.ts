@@ -5,7 +5,7 @@ import type {
   MdxJsxAttributeValueExpression,
   MdxJsxExpressionAttribute,
 } from "mdast-util-mdx-jsx";
-import { MDX_PARSE_ERROR_MSG, parseMDX } from ".";
+import { MDX_PARSE_ERROR_MSG, parseMDX } from "..";
 
 type StringField =
   | Extract<Field, { type: "string" }>

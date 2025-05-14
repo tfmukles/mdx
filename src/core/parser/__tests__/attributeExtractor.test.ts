@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { trimFragments } from "./attributeExtractor";
+import { trimFragments } from "../parsers/attributeExtractor";
 
 describe("trimFragments", () => {
   it("should preserve content between fragment tags on a new line", () => {

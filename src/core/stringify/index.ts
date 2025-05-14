@@ -15,7 +15,7 @@ import { Handlers, toMarkdown } from "mdast-util-to-markdown";
 import { text } from "mdast-util-to-markdown/lib/handle/text";
 import { stringifyMDX as stringifyMDXNext } from "../../next";
 import { directiveToMarkdown } from "../extensions/sitepins-shortcodes/directive-to-markdown";
-import type * as Plate from "../parser/plateTypes";
+import type * as Plate from "../parser/types/plateTypes";
 import { eat } from "./markdownMarksHandler";
 import { stringifyProps } from "./mdxAttributeSerializer";
 import { stringifyShortcode } from "./shortcodeStringifier";

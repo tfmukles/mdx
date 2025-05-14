@@ -3,13 +3,13 @@ import flatten from "lodash.flatten";
 import type * as Md from "mdast";
 import type { ContainerDirective } from "mdast-util-directive";
 import type { MdxJsxFlowElement, MdxJsxTextElement } from "mdast-util-mdx-jsx";
+import type * as Plate from "../types/plateTypes";
 import {
   directiveElement,
   mdxJsxElement as mdxJsxElementDefault,
 } from "./mdxElementTransformer";
-import type * as Plate from "./plateTypes";
 
-export type { Position, PositionItem } from "./plateTypes";
+export type { Position, PositionItem } from "../types/plateTypes";
 
 declare module "mdast" {
   interface StaticPhrasingContentMap {

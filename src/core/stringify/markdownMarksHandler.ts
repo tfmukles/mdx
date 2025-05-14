@@ -1,6 +1,6 @@
 import type { RichTextType } from "@/types";
 import type * as Md from "mdast";
-import type * as Plate from "../parser/plateTypes";
+import type * as Plate from "../parser/types/plateTypes";
 import { stringifyPropsInline } from "./mdxAttributeSerializer";
 
 export type MarkType = "strong" | "emphasis" | "inlineCode" | "delete";

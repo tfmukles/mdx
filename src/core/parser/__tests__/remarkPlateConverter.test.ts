@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeUrl } from "./remarkPlateConverter";
+import { sanitizeUrl } from "../transformers/remarkPlateConverter";
 
 describe("sanitizeUrl", () => {
   describe("input handling", () => {

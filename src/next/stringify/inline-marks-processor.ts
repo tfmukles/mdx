@@ -1,4 +1,4 @@
-import type * as Plate from "@/core/parser/plateTypes";
+import type * as Plate from "@/core/parser/types/plateTypes";
 import { getMarks } from "@/core/stringify";
 import type { RichTextField } from "@/types";
 import type * as Md from "mdast";

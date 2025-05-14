@@ -1,6 +1,6 @@
 import { RichTextType } from "@/types";
 import type * as Md from "mdast";
-import type * as Plate from "../../parser/plateTypes";
+import type * as Plate from "../../parser/types/plateTypes";
 import { eat } from "../handlers/";
 
 export const rootElement = (
