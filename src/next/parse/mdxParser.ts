@@ -1,8 +1,8 @@
 import type { RichTextField } from "@/types";
 import type { Root } from "mdast";
 import { compact } from "mdast-util-compact";
-import { fromMarkdown } from "./markdown";
-import { postProcessor } from "./post-processing";
+import { fromMarkdown } from "./markdownParser";
+import { postProcessor } from "./mdxPostProcessor";
 
 export const parseMDX = (
   value: string,
