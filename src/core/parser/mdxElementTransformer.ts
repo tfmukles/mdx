@@ -1,4 +1,3 @@
-import type * as Plate from "@/core/parser/plateTypes";
 import type { RichTextType } from "@/types";
 import { ContainerDirective } from "mdast-util-directive";
 import { LeafDirective } from "mdast-util-directive/lib";
@@ -6,6 +5,7 @@ import type { MdxJsxFlowElement, MdxJsxTextElement } from "mdast-util-mdx-jsx";
 import { source } from "unist-util-source";
 import { toSitepinsMarkdown } from "../stringify";
 import { extractAttributes } from "./attributeExtractor";
+import type * as Plate from "./plateTypes";
 import { remarkToSlate, RichTextParseError } from "./remarkPlateConverter";
 
 export function mdxJsxElement(

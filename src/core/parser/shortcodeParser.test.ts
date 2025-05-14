@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseShortcode } from "./parseShortcode";
+import { parseShortcode } from "./shortcodeParser";
 
 describe("parseShortcode", () => {
   describe("with keyed field", () => {

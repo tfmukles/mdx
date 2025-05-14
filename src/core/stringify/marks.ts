@@ -1,6 +1,6 @@
 import type { RichTextType } from "@/types";
 import type * as Md from "mdast";
-import type * as Plate from "../parser/plate";
+import type * as Plate from "../parser/plateTypes";
 import { stringifyPropsInline } from "./acorn";
 import { getMarks } from "./index";
 

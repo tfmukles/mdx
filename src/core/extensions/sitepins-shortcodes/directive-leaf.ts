@@ -5,8 +5,8 @@ import { types } from "micromark-util-symbol/types";
 import { values } from "micromark-util-symbol/values";
 import type { Construct, State, Tokenizer } from "micromark-util-types";
 import type { Pattern } from "../../stringify";
-import { factoryAttributes } from "./factory-attributes";
-import { factoryName } from "./factory-name";
+import { factoryAttributes } from "./directive-attributes";
+import { factoryName } from "./directive-name";
 
 /**
  * Finds the key in values object that matches the given string

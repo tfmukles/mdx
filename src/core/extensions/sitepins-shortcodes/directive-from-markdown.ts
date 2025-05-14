@@ -5,7 +5,7 @@ import type {
   Token,
 } from "mdast-util-from-markdown";
 import { parseEntities } from "parse-entities";
-import type { Directive } from "./types";
+import type { Directive } from "./directive-types";
 
 const enterContainer: FromMarkdownHandle = function (token) {
   enter.call(this, "containerDirective", token);

@@ -6,12 +6,12 @@ import { remark } from "remark";
 import remarkGfm from "remark-gfm";
 import remarkMdx, { type Root } from "remark-mdx";
 import { parseMDX as parseMDXNext } from "../../next";
-import { sitepinsDirective } from "../extensions/sitepins-shortcodes/extension";
-import { directiveFromMarkdown } from "../extensions/sitepins-shortcodes/from-markdown";
+import { sitepinsDirective } from "../extensions/sitepins-shortcodes/directive-extension";
+import { directiveFromMarkdown } from "../extensions/sitepins-shortcodes/directive-from-markdown";
 import type { Pattern } from "../stringify";
-import { parseShortcode } from "./parseShortcode";
-import type * as Plate from "./plate";
-import { remarkToSlate, RichTextParseError } from "./remarkToPlate";
+import type * as Plate from "./plateTypes";
+import { remarkToSlate, RichTextParseError } from "./remarkPlateConverter";
+import { parseShortcode } from "./shortcodeParser";
 
 export const markdownToAst = (value: string, field: RichTextType) => {
   const patterns: Pattern[] = [];

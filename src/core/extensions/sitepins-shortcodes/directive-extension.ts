@@ -1,7 +1,7 @@
 import type { Construct, Extension } from "micromark-util-types";
 import type { Pattern } from "../../stringify";
-import { directiveContainer } from "./shortcode-container";
-import { directiveLeaf, findCode } from "./shortcode-leaf";
+import { directiveContainer } from "./directive-container";
+import { directiveLeaf, findCode } from "./directive-leaf";
 
 export const sitepinsDirective: (patterns: Pattern[]) => Extension = function (
   patterns

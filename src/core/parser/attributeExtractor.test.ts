@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { trimFragments } from "./acorn";
+import { trimFragments } from "./attributeExtractor";
 
 describe("trimFragments", () => {
   it("initial fragment on a new line", () => {

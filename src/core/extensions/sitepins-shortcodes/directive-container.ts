@@ -12,9 +12,9 @@ import type {
 } from "micromark-util-types";
 import { ok as assert } from "uvu/assert";
 import type { Pattern } from "../../stringify";
-import { factoryAttributes } from "./factory-attributes";
-import { factoryName } from "./factory-name";
-import { findCode } from "./shortcode-leaf";
+import { factoryAttributes } from "./directive-attributes";
+import { findCode } from "./directive-leaf";
+import { factoryName } from "./directive-name";
 
 interface CustomTokenizeContext extends TokenizeContext {
   interrupt?: boolean;

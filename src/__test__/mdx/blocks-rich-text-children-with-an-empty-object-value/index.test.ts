@@ -1,4 +1,4 @@
-import { RootElement } from "@/core/parser/plate";
+import { RootElement } from "@/core/parser/plateTypes";
 import { stringifyMDX } from "@/core/stringify";
 import { expect, it } from "vitest";
 import * as util from "../../util";
