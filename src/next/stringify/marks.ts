@@ -1,7 +1,7 @@
+import type * as Plate from "@/core/parser/plateTypes";
+import { getMarks } from "@/core/stringify";
 import type { RichTextField } from "@/types";
 import type * as Md from "mdast";
-import type * as Plate from "../../core/parser/plateTypes";
-import { getMarks } from "../../core/stringify";
 import { stringifyPropsInline } from "./acorn";
 
 const matches = (a: string[], b: string[]) => {

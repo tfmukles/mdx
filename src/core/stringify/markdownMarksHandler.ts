@@ -1,8 +1,8 @@
 import type { RichTextType } from "@/types";
 import type * as Md from "mdast";
+import { getMarks } from ".";
 import type * as Plate from "../parser/plateTypes";
-import { stringifyPropsInline } from "./acorn";
-import { getMarks } from "./index";
+import { stringifyPropsInline } from "./mdxAttributeSerializer";
 
 const matches = (a: string[], b: string[]) => {
   return a.some((v) => b.includes(v));

@@ -1,12 +1,11 @@
 import type * as Plate from "@/core/parser/plateTypes";
-import type { RootElement } from "@/core/parser/plateTypes";
 import type { RichTextField } from "@/types";
 import type * as Md from "mdast";
 import { stringifyProps } from "./acorn";
 import { eat } from "./marks";
 
 export const preProcess = (
-  tree: RootElement,
+  tree: Plate.RootElement,
   field: RichTextField,
   imageCallback: (url: string) => string
 ) => {

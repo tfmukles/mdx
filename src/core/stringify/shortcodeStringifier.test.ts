@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { stringifyShortcode } from "./stringifyShortcode";
+import { stringifyShortcode } from "./shortcodeStringifier";
 
 describe("stringifyShortcode", () => {
   describe("with keyed field", () => {
