@@ -1,3 +1,0 @@
-<Cta>
-  ## Click **here**!
-</Cta>
