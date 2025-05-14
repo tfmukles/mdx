@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { trimFragments } from "./attributeExtractor";
 
 describe("trimFragments", () => {
-  it("initial fragment on a new line", () => {
+  it("should preserve content between fragment tags on a new line", () => {
     expect(
       trimFragments(`
   <>
@@ -11,14 +11,16 @@ describe("trimFragments", () => {
     `)
     ).toMatchInlineSnapshot('"    foo bar baz left"');
   });
-  it("fragment with no newlines", () => {
+
+  it("should handle fragment tags without newlines", () => {
     expect(
       trimFragments(`<>
     foo bar baz left
   </>`)
     ).toMatchInlineSnapshot('"    foo bar baz left"');
   });
-  it("fragment with extra fragments inside", () => {
+
+  it("should handle nested fragment tags", () => {
     expect(
       trimFragments(`<>
       Ok
@@ -33,7 +35,8 @@ describe("trimFragments", () => {
           </>"
     `);
   });
-  it("preserves newlines", () => {
+
+  it("should preserve empty lines between content", () => {
     expect(
       trimFragments(`<>
       Ok

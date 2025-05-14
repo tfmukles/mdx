@@ -4,24 +4,48 @@ import { replaceAll } from ".";
 export function parseShortcode(
   preprocessedString: string,
   template: RichTextTemplate
-) {
-  const match = template.match!;
+): string {
+  const { match, name, fields } = template;
+  const { start, end } = match!;
 
-  const unkeyedAttributes = !!template.fields.find((t) => t.name === "_value");
+  const hasUnkeyedAttributes = fields.some((field) => field.name === "_value");
+  const hasChildren = fields.some((field) => field.name === "children");
 
-  const hasChildren = !!template.fields.find((t) => t.name == "children");
-
-  const replacement = `<${template.name} ${
-    unkeyedAttributes ? '_value="$1"' : "$1"
-  }>${hasChildren ? "$2" : "\n"}</${template.name}>`;
-
-  const endRegex = `((?:.|\\n)*)${match.start}\\s\/\\s*${
-    match.name || template.name
-  }[\\s]*${match.end}`;
-
-  const regex = `${match.start}\\s*${match.name || template.name}[\\s]+${
-    unkeyedAttributes ? "['\"]?(.*?)['\"]?" : "(.*?)"
-  }[\\s]*${match.end}${hasChildren ? endRegex : ""}`;
+  const replacement = buildReplacement(name, hasUnkeyedAttributes, hasChildren);
+  const regex = buildRegex(start, end, name, hasUnkeyedAttributes, hasChildren);
 
   return replaceAll(preprocessedString, regex, replacement);
+}
+
+function buildReplacement(
+  name: string,
+  hasUnkeyedAttributes: boolean,
+  hasChildren: boolean
+): string {
+  const attributes = hasUnkeyedAttributes ? '_value="$1"' : "$1";
+  const content = hasChildren ? "$2" : "\n";
+  return `<${name} ${attributes}>${content}</${name}>`;
+}
+
+function buildRegex(
+  start: string,
+  end: string,
+  name: string,
+  hasUnkeyedAttributes: boolean,
+  hasChildren: boolean
+): string {
+  const namePattern = `\\s*${name}[\\s]+`;
+  const attributesPattern = hasUnkeyedAttributes
+    ? "['\"]?(.*?)['\"]?"
+    : "(.*?)";
+  const endPattern = `[\\s]*${end}`;
+
+  const baseRegex = `${start}${namePattern}${attributesPattern}${endPattern}`;
+
+  if (!hasChildren) {
+    return baseRegex;
+  }
+
+  const childrenPattern = `((?:.|\\n)*)${start}\\s\/\\s*${name}[\\s]*${end}`;
+  return `${baseRegex}${childrenPattern}`;
 }

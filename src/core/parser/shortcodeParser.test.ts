@@ -2,15 +2,19 @@ import { describe, expect, it } from "vitest";
 import { parseShortcode } from "./shortcodeParser";
 
 describe("parseShortcode", () => {
+  const baseTemplate = {
+    name: "signature",
+    label: "Signature",
+    match: {
+      start: "{{<",
+      end: ">}}",
+    },
+  };
+
   describe("with keyed field", () => {
     it("parses attributes", () => {
-      const result = parseShortcode('{{< signature foo="bar123">}}', {
-        name: "signature",
-        label: "Signature",
-        match: {
-          start: "{{<",
-          end: ">}}",
-        },
+      const template = {
+        ...baseTemplate,
         fields: [
           {
             name: "foo",
@@ -18,20 +22,17 @@ describe("parseShortcode", () => {
             type: "string",
           },
         ],
-      });
+      };
+
+      const result = parseShortcode('{{< signature foo="bar123">}}', template);
       expect(result).toEqual('<signature foo="bar123">\n</signature>');
     });
   });
 
   describe("with unkeyed attributes", () => {
     it("parses attributes", () => {
-      const result = parseShortcode('{{< signature "bar123" >}}', {
-        name: "signature",
-        label: "Signature",
-        match: {
-          start: "{{<",
-          end: ">}}",
-        },
+      const template = {
+        ...baseTemplate,
         fields: [
           {
             name: "_value",
@@ -39,30 +40,29 @@ describe("parseShortcode", () => {
             type: "string",
           },
         ],
-      });
+      };
+
+      const result = parseShortcode('{{< signature "bar123" >}}', template);
       expect(result).toEqual('<signature _value="bar123">\n</signature>');
     });
   });
 
   describe("with children", () => {
     it("parses children field", () => {
+      const template = {
+        ...baseTemplate,
+        fields: [
+          {
+            name: "children",
+            label: "children",
+            type: "rich-text",
+          },
+        ],
+      };
+
       const result = parseShortcode(
         "{{< signature >}}\n# FOO\n##Bar\n{{< /signature >}}",
-        {
-          name: "signature",
-          label: "Signature",
-          match: {
-            start: "{{<",
-            end: ">}}",
-          },
-          fields: [
-            {
-              name: "children",
-              label: "children",
-              type: "rich-text",
-            },
-          ],
-        }
+        template
       );
       expect(result).toEqual("<signature >\n# FOO\n##Bar\n</signature>");
     });
