@@ -1,21 +1,62 @@
 import { RichTextTemplate } from "@/types";
 import { replaceAll } from "../parser";
 
+interface ShortcodeConfig {
+  template: RichTextTemplate;
+  hasUnkeyedAttributes: boolean;
+  hasChildren: boolean;
+}
+
+function buildRegexPattern(
+  templateName: string,
+  hasUnkeyedAttributes: boolean
+): string {
+  const attributePattern = hasUnkeyedAttributes
+    ? "(?:_value=(.*?))?"
+    : "(.+?)?";
+
+  return `<[\\s]*${templateName}[\\s]*${attributePattern}[\\s]*>[\\s]*((?:.|\n)*?)[\\s]*<\/[\\s]*${templateName}[\\s]*>`;
+}
+
+function buildReplacementPattern(config: ShortcodeConfig): string {
+  const { template } = config;
+  const matchName = template.match?.name || template.name;
+  const matchStart = template.match!.start;
+  const matchEnd = template.match!.end;
+
+  const basePattern = `${matchStart} ${matchName} $1 ${matchEnd}`;
+
+  if (!config.hasChildren) {
+    return basePattern;
+  }
+
+  const closingPattern = `\n$2\n${matchStart} /${matchName} ${matchEnd}`;
+  return basePattern + closingPattern;
+}
+
+function getShortcodeConfig(template: RichTextTemplate): ShortcodeConfig {
+  return {
+    template,
+    hasUnkeyedAttributes: template.fields.some(
+      (field) => field.name === "_value"
+    ),
+    hasChildren: template.fields.some((field) => field.name === "children"),
+  };
+}
+
 export function stringifyShortcode(
   preprocessedString: string,
   template: RichTextTemplate
-) {
-  const match = template.match!;
-  const unkeyedAttributes = !!template.fields.find((t) => t.name == "_value");
-  const regex = `<[\\s]*${template.name}[\\s]*${
-    unkeyedAttributes ? "(?:_value=(.*?))?" : "(.+?)?"
-  }[\\s]*>[\\s]*((?:.|\n)*?)[\\s]*<\/[\\s]*${template.name}[\\s]*>`;
+): string {
+  if (!template.match) {
+    throw new Error(
+      "Template must have a match property for shortcode stringification"
+    );
+  }
 
-  const closingRegex = `\n$2\n${match.start} /${match.name || template.name} ${
-    match.end
-  }`;
-  const replace = `${match.start} ${match.name || template.name} $1 ${
-    match.end
-  }${template.fields.find((t) => t.name == "children") ? closingRegex : ""}`;
-  return replaceAll(preprocessedString, regex, replace);
+  const config = getShortcodeConfig(template);
+  const regex = buildRegexPattern(template.name, config.hasUnkeyedAttributes);
+  const replacement = buildReplacementPattern(config);
+
+  return replaceAll(preprocessedString, regex, replacement);
 }
