@@ -8,7 +8,7 @@ import type { MdxJsxAttribute } from "mdast-util-mdx-jsx";
 import parser from "prettier/esm/parser-espree.mjs";
 import { stringifyMDX } from ".";
 import * as Plate from "../../core/parser/plateTypes";
-import { rootElement } from "./pre-processing";
+import { rootElement } from "./ast-transformer";
 
 export const stringifyPropsInline = (
   element: Plate.MdxInlineElement,

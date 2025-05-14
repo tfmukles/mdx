@@ -1,8 +1,8 @@
 import type * as Plate from "@/core/parser/plateTypes";
 import type { RichTextField } from "@/types";
 import type * as Md from "mdast";
-import { stringifyProps } from "./acorn";
-import { eat } from "./marks";
+import { eat } from "./inline-marks-processor";
+import { stringifyProps } from "./jsx-attribute-processor";
 
 export const preProcess = (
   tree: Plate.RootElement,

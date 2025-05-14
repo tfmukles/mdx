@@ -2,7 +2,7 @@ import type * as Plate from "@/core/parser/plateTypes";
 import { getMarks } from "@/core/stringify";
 import type { RichTextField } from "@/types";
 import type * as Md from "mdast";
-import { stringifyPropsInline } from "./acorn";
+import { stringifyPropsInline } from "./jsx-attribute-processor";
 
 const matches = (a: string[], b: string[]) => {
   return a.some((v) => b.includes(v));
