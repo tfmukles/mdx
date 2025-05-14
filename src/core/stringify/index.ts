@@ -160,8 +160,13 @@ export const blockElement = (
     case "h6":
       return {
         type: "heading",
-        // @ts-ignore Type 'number' is not assignable to type '1 | 2 | 3 | 4 | 5 | 6'
-        depth: { h1: 1, h2: 2, h3: 3, h4: 4, h5: 5, h6: 6 }[content.type],
+        depth: { h1: 1, h2: 2, h3: 3, h4: 4, h5: 5, h6: 6 }[content.type] as
+          | 1
+          | 2
+          | 3
+          | 4
+          | 5
+          | 6,
         children: eat(content.children, field, imageCallback),
       };
     case "p":
