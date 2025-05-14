@@ -11,29 +11,62 @@ import { codes } from "micromark-util-symbol/codes";
 import { types } from "micromark-util-symbol/types";
 import type { Code, Effects, State } from "micromark-util-types";
 
-export function factoryAttributes(
-  effects: Effects,
-  ok: State,
-  nnok: State,
-  attributesType: string,
-  attributesMarkerType: string,
-  attributeType: string,
-  attributeIdType: string,
-  attributeClassType: string,
-  attributeNameType: string,
-  attributeInitializerType: string,
-  attributeValueLiteralType: string,
-  attributeValueType: string,
-  attributeValueMarker: string,
-  attributeValueData: string,
-  disallowEol?: boolean
-) {
-  let type: string;
-  let marker: Code | undefined;
+interface AttributeHandlerContext {
+  effects: Effects;
+  type: string;
+  marker?: Code;
+  disallowEol?: boolean;
+}
 
-  const nok: State = function (code) {
-    return nnok(code);
-  };
+interface AttributeStateHandlers {
+  start: State;
+  between: State;
+  shortcutStart: State;
+  shortcutStartAfter: State;
+  shortcut: State;
+  name: State;
+  nameAfter: State;
+  valueBefore: State;
+  valueUnquoted: State;
+  valueQuotedStart: State;
+  valueQuotedBetween: State;
+  valueQuoted: State;
+  valueQuotedAfter: State;
+  end: State;
+}
+
+function createAttributeStateHandlers(
+  context: AttributeHandlerContext,
+  ok: State,
+  nok: State,
+  attributeTypes: {
+    attributesType: string;
+    attributesMarkerType: string;
+    attributeType: string;
+    attributeIdType: string;
+    attributeClassType: string;
+    attributeNameType: string;
+    attributeInitializerType: string;
+    attributeValueLiteralType: string;
+    attributeValueType: string;
+    attributeValueMarker: string;
+    attributeValueData: string;
+  }
+): AttributeStateHandlers {
+  const { effects, disallowEol } = context;
+  const {
+    attributesType,
+    attributesMarkerType,
+    attributeType,
+    attributeIdType,
+    attributeClassType,
+    attributeNameType,
+    attributeInitializerType,
+    attributeValueLiteralType,
+    attributeValueType,
+    attributeValueMarker,
+    attributeValueData,
+  } = attributeTypes;
 
   const start: State = function (code) {
     effects.enter(attributesType);
@@ -41,19 +74,16 @@ export function factoryAttributes(
   };
 
   const between: State = function (code) {
-    // Handle ID shortcut (#)
     if (code === codes.numberSign) {
-      type = attributeIdType;
+      context.type = attributeIdType;
       return shortcutStart(code);
     }
 
-    // Handle class shortcut (.)
     if (code === codes.dot) {
-      type = attributeClassType;
+      context.type = attributeClassType;
       return shortcutStart(code);
     }
 
-    // Handle attribute name
     if (code === codes.colon || code === codes.underscore || asciiAlpha(code)) {
       effects.enter(attributeType);
       effects.enter(attributeNameType);
@@ -61,7 +91,6 @@ export function factoryAttributes(
       return name;
     }
 
-    // Skip the name, go directly to the value
     if (code === codes.quotationMark || code === codes.apostrophe) {
       effects.enter(attributeNameType);
       effects.exit(attributeNameType);
@@ -69,7 +98,6 @@ export function factoryAttributes(
       return valueBefore(code);
     }
 
-    // Handle whitespace
     if (disallowEol && markdownSpace(code)) {
       return factorySpace(effects, between, types.whitespace)(code);
     }
@@ -83,56 +111,31 @@ export function factoryAttributes(
 
   const shortcutStart: State = function (code) {
     effects.enter(attributeType);
-    effects.enter(type);
-    effects.enter(type + "Marker");
+    effects.enter(context.type);
+    effects.enter(context.type + "Marker");
     effects.consume(code);
-    effects.exit(type + "Marker");
+    effects.exit(context.type + "Marker");
     return shortcutStartAfter;
   };
 
   const shortcutStartAfter: State = function (code) {
-    if (
-      code === codes.eof ||
-      code === codes.quotationMark ||
-      code === codes.numberSign ||
-      code === codes.apostrophe ||
-      code === codes.dot ||
-      code === codes.lessThan ||
-      code === codes.equalsTo ||
-      code === codes.greaterThan ||
-      code === codes.graveAccent ||
-      code === codes.rightCurlyBrace ||
-      markdownLineEndingOrSpace(code)
-    ) {
+    if (isInvalidShortcutStartCode(code)) {
       return nok(code);
     }
 
-    effects.enter(type + "Value");
+    effects.enter(context.type + "Value");
     effects.consume(code);
     return shortcut;
   };
 
   const shortcut: State = function (code) {
-    if (
-      code === codes.eof ||
-      code === codes.quotationMark ||
-      code === codes.apostrophe ||
-      code === codes.lessThan ||
-      code === codes.equalsTo ||
-      code === codes.greaterThan ||
-      code === codes.graveAccent
-    ) {
+    if (isInvalidShortcutCode(code)) {
       return nok(code);
     }
 
-    if (
-      code === codes.numberSign ||
-      code === codes.dot ||
-      code === codes.rightCurlyBrace ||
-      markdownLineEndingOrSpace(code)
-    ) {
-      effects.exit(type + "Value");
-      effects.exit(type);
+    if (isShortcutEndCode(code)) {
+      effects.exit(context.type + "Value");
+      effects.exit(context.type);
       effects.exit(attributeType);
       return between(code);
     }
@@ -142,13 +145,7 @@ export function factoryAttributes(
   };
 
   const name: State = function (code) {
-    if (
-      code === codes.dash ||
-      code === codes.dot ||
-      code === codes.colon ||
-      code === codes.underscore ||
-      asciiAlphanumeric(code)
-    ) {
+    if (isValidNameCode(code)) {
       effects.consume(code);
       return name;
     }
@@ -174,21 +171,12 @@ export function factoryAttributes(
       return valueBefore;
     }
 
-    // Attribute w/o value.
     effects.exit(attributeType);
     return between(code);
   };
 
   const valueBefore: State = function (code) {
-    if (
-      code === codes.eof ||
-      code === codes.lessThan ||
-      code === codes.equalsTo ||
-      code === codes.greaterThan ||
-      code === codes.graveAccent ||
-      code === codes.rightCurlyBrace ||
-      (disallowEol && markdownLineEnding(code))
-    ) {
+    if (isInvalidValueCode(code) || (disallowEol && markdownLineEnding(code))) {
       return nok(code);
     }
 
@@ -197,7 +185,7 @@ export function factoryAttributes(
       effects.enter(attributeValueMarker);
       effects.consume(code);
       effects.exit(attributeValueMarker);
-      marker = code;
+      context.marker = code;
       return valueQuotedStart;
     }
 
@@ -212,20 +200,12 @@ export function factoryAttributes(
     effects.enter(attributeValueType);
     effects.enter(attributeValueData);
     effects.consume(code);
-    marker = undefined;
+    context.marker = undefined;
     return valueUnquoted;
   };
 
   const valueUnquoted: State = function (code) {
-    if (
-      code === codes.eof ||
-      code === codes.quotationMark ||
-      code === codes.apostrophe ||
-      code === codes.lessThan ||
-      code === codes.equalsTo ||
-      code === codes.greaterThan ||
-      code === codes.graveAccent
-    ) {
+    if (isInvalidUnquotedValueCode(code)) {
       return nok(code);
     }
 
@@ -241,7 +221,7 @@ export function factoryAttributes(
   };
 
   const valueQuotedStart: State = function (code) {
-    if (code === marker) {
+    if (code === context.marker) {
       effects.enter(attributeValueMarker);
       effects.consume(code);
       effects.exit(attributeValueMarker);
@@ -255,7 +235,7 @@ export function factoryAttributes(
   };
 
   const valueQuotedBetween: State = function (code) {
-    if (code === marker) {
+    if (code === context.marker) {
       effects.exit(attributeValueType);
       return valueQuotedStart(code);
     }
@@ -264,7 +244,6 @@ export function factoryAttributes(
       return nok(code);
     }
 
-    // Note: blank lines can’t exist in content.
     if (markdownLineEnding(code)) {
       return disallowEol
         ? nok(code)
@@ -277,7 +256,11 @@ export function factoryAttributes(
   };
 
   const valueQuoted: State = function (code) {
-    if (code === marker || code === codes.eof || markdownLineEnding(code)) {
+    if (
+      code === context.marker ||
+      code === codes.eof ||
+      markdownLineEnding(code)
+    ) {
       effects.exit(attributeValueData);
       return valueQuotedBetween(code);
     }
@@ -303,5 +286,130 @@ export function factoryAttributes(
     return nok(code);
   };
 
-  return start;
+  return {
+    start,
+    between,
+    shortcutStart,
+    shortcutStartAfter,
+    shortcut,
+    name,
+    nameAfter,
+    valueBefore,
+    valueUnquoted,
+    valueQuotedStart,
+    valueQuotedBetween,
+    valueQuoted,
+    valueQuotedAfter,
+    end,
+  };
+}
+
+function isInvalidShortcutStartCode(code: number): boolean {
+  return (
+    code === codes.eof ||
+    code === codes.quotationMark ||
+    code === codes.numberSign ||
+    code === codes.apostrophe ||
+    code === codes.dot ||
+    code === codes.lessThan ||
+    code === codes.equalsTo ||
+    code === codes.greaterThan ||
+    code === codes.graveAccent ||
+    code === codes.rightCurlyBrace ||
+    markdownLineEndingOrSpace(code)
+  );
+}
+
+function isInvalidShortcutCode(code: number): boolean {
+  return (
+    code === codes.eof ||
+    code === codes.quotationMark ||
+    code === codes.apostrophe ||
+    code === codes.lessThan ||
+    code === codes.equalsTo ||
+    code === codes.greaterThan ||
+    code === codes.graveAccent
+  );
+}
+
+function isShortcutEndCode(code: number): boolean {
+  return (
+    code === codes.numberSign ||
+    code === codes.dot ||
+    code === codes.rightCurlyBrace ||
+    markdownLineEndingOrSpace(code)
+  );
+}
+
+function isValidNameCode(code: number): boolean {
+  return (
+    code === codes.dash ||
+    code === codes.dot ||
+    code === codes.colon ||
+    code === codes.underscore ||
+    asciiAlphanumeric(code)
+  );
+}
+
+function isInvalidValueCode(code: number): boolean {
+  return (
+    code === codes.eof ||
+    code === codes.lessThan ||
+    code === codes.equalsTo ||
+    code === codes.greaterThan ||
+    code === codes.graveAccent ||
+    code === codes.rightCurlyBrace
+  );
+}
+
+function isInvalidUnquotedValueCode(code: number): boolean {
+  return (
+    code === codes.eof ||
+    code === codes.quotationMark ||
+    code === codes.apostrophe ||
+    code === codes.lessThan ||
+    code === codes.equalsTo ||
+    code === codes.greaterThan ||
+    code === codes.graveAccent
+  );
+}
+
+export function factoryAttributes(
+  effects: Effects,
+  ok: State,
+  nnok: State,
+  attributesType: string,
+  attributesMarkerType: string,
+  attributeType: string,
+  attributeIdType: string,
+  attributeClassType: string,
+  attributeNameType: string,
+  attributeInitializerType: string,
+  attributeValueLiteralType: string,
+  attributeValueType: string,
+  attributeValueMarker: string,
+  attributeValueData: string,
+  disallowEol?: boolean
+): State {
+  const context: AttributeHandlerContext = {
+    effects,
+    type: "",
+    disallowEol,
+  };
+
+  const handlers = createAttributeStateHandlers(context, ok, nnok, {
+    attributesType,
+    attributesMarkerType,
+    attributeType,
+    attributeIdType,
+    attributeClassType,
+    attributeNameType,
+    attributeInitializerType,
+    attributeValueLiteralType,
+    attributeValueType,
+    attributeValueMarker,
+    attributeValueData,
+  });
+
+  return handlers.start;
 }

@@ -31,7 +31,7 @@ export const markdownToAst = (value: string, field: RichTextType) => {
     }
   });
   return fromMarkdown(value, {
-    extensions: [gfm(), sitepinsDirective(patterns)],
+    extensions: [gfm(), sitepinsDirective({ patterns })],
     mdastExtensions: [gfmFromMarkdown(), directiveFromMarkdown],
   });
 };

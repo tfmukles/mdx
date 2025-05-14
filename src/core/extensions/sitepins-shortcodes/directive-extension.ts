@@ -1,12 +1,57 @@
-import type { Construct, Extension } from "micromark-util-types";
-import type { Pattern } from "../../stringify";
-import { directiveContainer } from "./directive-container";
-import { directiveLeaf, findCode } from "./directive-leaf";
+/**
+ * This module provides functionality for handling custom directives in markdown text.
+ * It allows defining patterns for both leaf (inline) and block (container) directives,
+ * and creates the necessary rules for parsing them.
+ */
 
-export const sitepinsDirective: (patterns: Pattern[]) => Extension = function (
-  patterns
+import type { Extension } from "micromark-util-types";
+import { directiveContainer } from "./directive-container";
+import { directiveLeaf } from "./directive-leaf";
+import type {
+  DirectiveOptions,
+  DirectivePattern,
+  DirectiveRules,
+} from "./types";
+import { findCode } from "./utils";
+
+/**
+ * Gets the appropriate directive handler based on the pattern type
+ */
+function getDirectiveForPattern(pattern: DirectivePattern) {
+  switch (pattern.type) {
+    case "leaf":
+      return directiveLeaf(pattern);
+    case "block":
+      return directiveContainer(pattern);
+    default:
+      return null;
+  }
+}
+
+/**
+ * Adds a directive handler to the rules map for a specific character code
+ */
+function addDirectiveToRules(
+  rules: DirectiveRules,
+  code: number,
+  directive: ReturnType<typeof getDirectiveForPattern>
 ) {
-  const rules: Record<number, Construct[]> = {};
+  if (!directive) return;
+
+  if (!rules[code]) {
+    rules[code] = [directive];
+  } else {
+    rules[code].push(directive);
+  }
+}
+
+/**
+ * Creates a map of character codes to directive handlers based on the provided patterns
+ */
+export function createDirectiveRules(
+  patterns: DirectivePattern[]
+): DirectiveRules {
+  const rules: DirectiveRules = {};
 
   patterns.forEach((pattern) => {
     const firstKey = pattern.start[0];
@@ -15,23 +60,20 @@ export const sitepinsDirective: (patterns: Pattern[]) => Extension = function (
     const code = findCode(firstKey);
     if (!code) return;
 
-    const directive =
-      pattern.type === "leaf"
-        ? directiveLeaf(pattern)
-        : pattern.type === "block"
-        ? directiveContainer(pattern)
-        : null;
-
-    if (!directive) return;
-
-    if (!rules[code]) {
-      rules[code] = [directive];
-    } else {
-      rules[code].push(directive);
-    }
+    const directive = getDirectiveForPattern(pattern);
+    addDirectiveToRules(rules, code, directive);
   });
 
+  return rules;
+}
+
+/**
+ * Creates a micromark extension for handling custom directives
+ * based on the provided patterns
+ */
+export function sitepinsDirective(options: DirectiveOptions): Extension {
+  const rules = createDirectiveRules(options.patterns);
   return {
     flow: rules,
   };
-};
+}

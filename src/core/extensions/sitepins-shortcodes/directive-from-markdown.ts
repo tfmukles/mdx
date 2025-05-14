@@ -7,164 +7,149 @@ import type {
 import { parseEntities } from "parse-entities";
 import type { Directive } from "./directive-types";
 
-const enterContainer: FromMarkdownHandle = function (token) {
-  enter.call(this, "containerDirective", token);
+// Helper functions for entering different directive types
+const createEnterDirective = (
+  type: "containerDirective" | "leafDirective" | "textDirective"
+): FromMarkdownHandle => {
+  return function (token) {
+    this.enter({ type, name: "", attributes: {}, children: [] }, token);
+  };
 };
 
-const enterLeaf: FromMarkdownHandle = function (token) {
-  enter.call(this, "leafDirective", token);
-};
+const enterContainer = createEnterDirective("containerDirective");
+const enterLeaf = createEnterDirective("leafDirective");
+const enterText = createEnterDirective("textDirective");
 
-const enterText: FromMarkdownHandle = function (token) {
-  enter.call(this, "textDirective", token);
-};
-
-const enter = function (
-  this: CompileContext,
-  type: "containerDirective" | "leafDirective" | "textDirective",
-  token: Token
-) {
-  this.enter({ type, name: "", attributes: {}, children: [] }, token);
-};
-
+// Handle directive names
 function exitName(this: CompileContext, token: Token) {
   const node = this.stack[this.stack.length - 1] as Directive;
   node.name = this.sliceSerialize(token);
 }
 
-const enterContainerLabel: FromMarkdownHandle = function (token) {
-  this.enter(
-    { type: "paragraph", data: { directiveLabel: true }, children: [] },
-    token
-  );
+// Container label handlers
+const containerLabelHandlers = {
+  enter: function (this: CompileContext, token: Token) {
+    this.enter(
+      { type: "paragraph", data: { directiveLabel: true }, children: [] },
+      token
+    );
+  },
+  exit: function (token: Token) {
+    this.exit(token);
+  },
 };
 
-const exitContainerLabel: FromMarkdownHandle = function (token) {
-  this.exit(token);
-};
+// Attribute handling
+class AttributeHandler {
+  static enter: FromMarkdownHandle = function () {
+    this.setData("directiveAttributes", []);
+    this.buffer();
+  };
 
-const enterAttributes: FromMarkdownHandle = function () {
-  this.setData("directiveAttributes", []);
-  this.buffer(); // Capture EOLs
-};
+  static handleAttributeValue(
+    token: Token,
+    context: CompileContext,
+    type?: string
+  ) {
+    const list = context.getData("directiveAttributes");
+    if (!list) return;
 
-const exitAttributeIdValue: FromMarkdownHandle = function (token) {
-  const list = this.getData("directiveAttributes");
-  if (list) {
-    list.push([
-      "id",
-      parseEntities(this.sliceSerialize(token), {
-        attribute: true,
-      }),
-    ]);
-  }
-};
+    const value = parseEntities(context.sliceSerialize(token), {
+      attribute: true,
+    });
 
-const exitAttributeClassValue: FromMarkdownHandle = function (token) {
-  const list = this.getData("directiveAttributes");
-  if (list) {
-    list.push([
-      "class",
-      parseEntities(this.sliceSerialize(token), {
-        attribute: true,
-      }),
-    ]);
-  }
-};
-
-const exitAttributeValue: FromMarkdownHandle = function (token) {
-  const list = this.getData("directiveAttributes");
-  if (list) {
-    const item = list[list.length - 1];
-    if (item) {
-      item[1] = parseEntities(this.sliceSerialize(token), {
-        attribute: true,
-      });
-    }
-  }
-};
-
-const exitAttributeName: FromMarkdownHandle = function (token) {
-  const list = this.getData("directiveAttributes");
-
-  // Attribute names in CommonMark are significantly limited, so character
-  // references can't exist.
-  if (list) {
-    const name = this.sliceSerialize(token);
-    if (!name) {
-      list.push(["_value", ""]);
+    if (type) {
+      list.push([type, value]);
     } else {
-      list.push([this.sliceSerialize(token), ""]);
-    }
-  }
-};
-
-function exitAttributes(this: CompileContext) {
-  const list = this.getData("directiveAttributes");
-  const cleaned: Record<string, string> = {};
-  let index = -1;
-
-  if (list) {
-    while (++index < list.length) {
-      const attribute = list[index];
-
-      if (attribute) {
-        if (attribute[0] === "class" && cleaned.class) {
-          cleaned.class += " " + attribute[1];
-        } else {
-          cleaned[attribute[0]] = attribute[1];
-        }
+      const lastItem = list[list.length - 1];
+      if (lastItem) {
+        lastItem[1] = value;
       }
     }
   }
 
-  this.setData("directiveAttributes");
-  this.resume(); // Drop EOLs
-  const node = this.stack[this.stack.length - 1] as Directive;
-  node.attributes = cleaned;
+  static exitName: FromMarkdownHandle = function (token) {
+    const list = this.getData("directiveAttributes");
+    if (!list) return;
+
+    const name = this.sliceSerialize(token);
+    list.push([name || "_value", ""]);
+  };
+
+  static exit: FromMarkdownHandle = function (
+    this: CompileContext,
+    token: Token
+  ) {
+    const list = this.getData("directiveAttributes");
+    const cleaned: Record<string, string> = {};
+
+    if (list) {
+      list.forEach((attribute) => {
+        if (!attribute) return;
+
+        const [key, value] = attribute;
+        if (key === "class" && cleaned.class) {
+          cleaned.class += " " + value;
+        } else {
+          cleaned[key] = value;
+        }
+      });
+    }
+
+    this.setData("directiveAttributes");
+    this.resume();
+    const node = this.stack[this.stack.length - 1] as Directive;
+    node.attributes = cleaned;
+  };
 }
 
-function exit(this: CompileContext, token: Token) {
+// Simple exit handler
+const exit: FromMarkdownHandle = function (token) {
   this.exit(token);
-}
+};
+
+// Create attribute value exit handlers
+const createAttributeValueExit = (type?: string): FromMarkdownHandle => {
+  return function (token) {
+    AttributeHandler.handleAttributeValue(token, this, type);
+  };
+};
 
 export const directiveFromMarkdown: FromMarkdownExtension = {
   canContainEols: ["textDirective"],
   enter: {
     directiveContainer: enterContainer,
-    directiveContainerAttributes: enterAttributes,
-    directiveContainerLabel: enterContainerLabel,
-
+    directiveContainerAttributes: AttributeHandler.enter,
+    directiveContainerLabel: containerLabelHandlers.enter,
     directiveLeaf: enterLeaf,
-    directiveLeafAttributes: enterAttributes,
-
+    directiveLeafAttributes: AttributeHandler.enter,
     directiveText: enterText,
-    directiveTextAttributes: enterAttributes,
+    directiveTextAttributes: AttributeHandler.enter,
   },
   exit: {
     directiveContainer: exit,
-    directiveContainerAttributeClassValue: exitAttributeClassValue,
-    directiveContainerAttributeIdValue: exitAttributeIdValue,
-    directiveContainerAttributeName: exitAttributeName,
-    directiveContainerAttributeValue: exitAttributeValue,
-    directiveContainerAttributes: exitAttributes,
-    directiveContainerLabel: exitContainerLabel,
+    directiveContainerAttributeClassValue: createAttributeValueExit("class"),
+    directiveContainerAttributeIdValue: createAttributeValueExit("id"),
+    directiveContainerAttributeName: AttributeHandler.exitName,
+    directiveContainerAttributeValue: createAttributeValueExit(),
+    directiveContainerAttributes: AttributeHandler.exit,
+    directiveContainerLabel: containerLabelHandlers.exit,
     directiveContainerName: exitName,
 
     directiveLeaf: exit,
-    directiveLeafAttributeClassValue: exitAttributeClassValue,
-    directiveLeafAttributeIdValue: exitAttributeIdValue,
-    directiveLeafAttributeName: exitAttributeName,
-    directiveLeafAttributeValue: exitAttributeValue,
-    directiveLeafAttributes: exitAttributes,
+    directiveLeafAttributeClassValue: createAttributeValueExit("class"),
+    directiveLeafAttributeIdValue: createAttributeValueExit("id"),
+    directiveLeafAttributeName: AttributeHandler.exitName,
+    directiveLeafAttributeValue: createAttributeValueExit(),
+    directiveLeafAttributes: AttributeHandler.exit,
     directiveLeafName: exitName,
 
     directiveText: exit,
-    directiveTextAttributeClassValue: exitAttributeClassValue,
-    directiveTextAttributeIdValue: exitAttributeIdValue,
-    directiveTextAttributeName: exitAttributeName,
-    directiveTextAttributeValue: exitAttributeValue,
-    directiveTextAttributes: exitAttributes,
+    directiveTextAttributeClassValue: createAttributeValueExit("class"),
+    directiveTextAttributeIdValue: createAttributeValueExit("id"),
+    directiveTextAttributeName: AttributeHandler.exitName,
+    directiveTextAttributeValue: createAttributeValueExit(),
+    directiveTextAttributes: AttributeHandler.exit,
     directiveTextName: exitName,
   },
 };
