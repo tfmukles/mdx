@@ -1,29 +1,17 @@
-/**
-
-
-
-*/
-
-/**
- * @group _MiscellaneousElement
- */
 export type RootElement = {
-  type: 'root';
+  type: "root";
   children: BlockElement[];
 };
 
-/**
- * @group BlockElement
- */
 export type BlockquoteElement = {
-  type: 'blockquote';
+  type: "blockquote";
   children: InlineElement[];
 };
 /**
  * @group BlockElement
  */
 export type CodeBlockElement = {
-  type: 'code_block';
+  type: "code_block";
   lang?: string;
   value: string;
   children: [EmptyTextElement];
@@ -32,7 +20,7 @@ export type CodeBlockElement = {
  * @group BlockElement
  */
 export type HeadingElement = {
-  type: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+  type: "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
   children: InlineElement[];
 };
 
@@ -40,14 +28,14 @@ export type HeadingElement = {
  * @group BlockElement
  */
 export type HrElement = {
-  type: 'hr';
+  type: "hr";
   children: [EmptyTextElement];
 };
 /**
  * @group BlockElement
  */
 export type HTMLElement = {
-  type: 'html';
+  type: "html";
   value: string;
   children: [EmptyTextElement];
 };
@@ -55,7 +43,7 @@ export type HTMLElement = {
  * @group InlineElement
  */
 export type HTMLInlineElement = {
-  type: 'html_inline';
+  type: "html_inline";
   value: string;
   children: [EmptyTextElement];
 };
@@ -63,7 +51,7 @@ export type HTMLInlineElement = {
  * @group BlockElement
  */
 export type InvalidMarkdownElement = {
-  type: 'invalid_markdown';
+  type: "invalid_markdown";
   value: string;
   message: string;
   position?: Position;
@@ -77,7 +65,7 @@ export type List = OrderedListElement | UnorderedListElement;
  * @group ListElements
  */
 export type ListItemContentElement = {
-  type: 'lic';
+  type: "lic";
   children: LicElement[];
 };
 /**
@@ -92,21 +80,21 @@ export type ListItemChildrenElement =
  * @group BlockElement
  */
 export type ListItemElement = {
-  type: 'li';
+  type: "li";
   children: ListItemChildrenElement[];
 };
 /**
  * @group BlockElement
  */
 export type UnorderedListElement = {
-  type: 'ul';
+  type: "ul";
   children: ListItemElement[];
 };
 /**
  * @group BlockElement
  */
 export type MdxBlockElement = {
-  type: 'mdxJsxFlowElement';
+  type: "mdxJsxFlowElement";
   name: string | null;
   props: Record<string, unknown>;
   children: [EmptyTextElement];
@@ -115,35 +103,35 @@ export type MdxBlockElement = {
  * @group BlockElement
  */
 export type OrderedListElement = {
-  type: 'ol';
+  type: "ol";
   children: ListItemElement[];
 };
 /**
  * @group BlockElement
  */
 export type ParagraphElement = {
-  type: 'p';
+  type: "p";
   children: InlineElement[];
 };
 /**
  * @group BlockElement
  */
 export type TableCellElement = {
-  type: 'td';
+  type: "td";
   children: ParagraphElement[];
 };
 /**
  * @group BlockElement
  */
 export type TableRowElement = {
-  type: 'tr';
+  type: "tr";
   children: TableCellElement[];
 };
 /**
  * @group BlockElement
  */
 export type TableElement = {
-  type: 'table';
+  type: "table";
   children: TableRowElement[];
   props: Record<string, unknown>;
 };
@@ -152,7 +140,7 @@ export type TableElement = {
  * @group MermaidElement
  */
 export type MermaidElement = {
-  type: 'mermaid';
+  type: "mermaid";
   value: string;
   children: [EmptyTextElement];
 };
@@ -182,7 +170,7 @@ export type BlockElement =
  * @group InlineElement
  */
 export type MdxInlineElement = {
-  type: 'mdxJsxTextElement';
+  type: "mdxJsxTextElement";
   name: string | null;
   props: Record<string, unknown>;
   children: [EmptyTextElement];
@@ -195,12 +183,12 @@ export type MdxInlineElement = {
  *
  * @group MiscellaneousElement
  */
-export type EmptyTextElement = { type: 'text'; text: '' };
+export type EmptyTextElement = { type: "text"; text: "" };
 /**
  * @group InlineElement
  */
 export type TextElement = {
-  type: 'text';
+  type: "text";
   text: string;
   bold?: boolean;
   italic?: boolean;
@@ -214,7 +202,7 @@ export type TextElement = {
  * @group InlineElement
  */
 export type ImageElement = {
-  type: 'img';
+  type: "img";
   url: string;
   alt?: string;
   caption?: string | null;
@@ -224,7 +212,7 @@ export type ImageElement = {
  * @group InlineElement
  */
 export type LinkElement = {
-  type: 'a';
+  type: "a";
   url: string;
   title?: string | null;
   children: InlineElement[];
@@ -233,7 +221,7 @@ export type LinkElement = {
  * @group InlineElement
  */
 export type BreakElement = {
-  type: 'break';
+  type: "break";
   children: [EmptyTextElement];
 };
 

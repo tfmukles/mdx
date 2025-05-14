@@ -1,9 +1,3 @@
-/**
-
-
-
-*/
-
 import { RichTextTemplate } from "@/types";
 import { replaceAll } from ".";
 

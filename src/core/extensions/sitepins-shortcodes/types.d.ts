@@ -1,6 +1,5 @@
 import type { BlockContent, DefinitionContent, PhrasingContent } from "mdast";
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 interface DirectiveFields {
   /**
    * Directive name.

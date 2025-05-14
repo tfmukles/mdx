@@ -1,9 +1,3 @@
-/**
-
-
-
-*/
-
 import type { RichTextType } from "@/types";
 import type * as Md from "mdast";
 import type * as Plate from "../parser/plate";

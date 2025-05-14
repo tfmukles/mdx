@@ -1,26 +1,21 @@
-/**
+import { describe, expect, it } from "vitest";
+import { parseShortcode } from "./parseShortcode";
 
-
-
-*/
-import { it, expect, describe } from 'vitest';
-import { parseShortcode } from './parseShortcode';
-
-describe('parseShortcode', () => {
-  describe('with keyed field', () => {
-    it('parses attributes', () => {
+describe("parseShortcode", () => {
+  describe("with keyed field", () => {
+    it("parses attributes", () => {
       const result = parseShortcode('{{< signature foo="bar123">}}', {
-        name: 'signature',
-        label: 'Signature',
+        name: "signature",
+        label: "Signature",
         match: {
-          start: '{{<',
-          end: '>}}',
+          start: "{{<",
+          end: ">}}",
         },
         fields: [
           {
-            name: 'foo',
-            label: 'foo label',
-            type: 'string',
+            name: "foo",
+            label: "foo label",
+            type: "string",
           },
         ],
       });
@@ -28,20 +23,20 @@ describe('parseShortcode', () => {
     });
   });
 
-  describe('with unkeyed attributes', () => {
-    it('parses attributes', () => {
+  describe("with unkeyed attributes", () => {
+    it("parses attributes", () => {
       const result = parseShortcode('{{< signature "bar123" >}}', {
-        name: 'signature',
-        label: 'Signature',
+        name: "signature",
+        label: "Signature",
         match: {
-          start: '{{<',
-          end: '>}}',
+          start: "{{<",
+          end: ">}}",
         },
         fields: [
           {
-            name: '_value',
-            label: 'Value',
-            type: 'string',
+            name: "_value",
+            label: "Value",
+            type: "string",
           },
         ],
       });
@@ -49,27 +44,27 @@ describe('parseShortcode', () => {
     });
   });
 
-  describe('with children', () => {
-    it('parses children field', () => {
+  describe("with children", () => {
+    it("parses children field", () => {
       const result = parseShortcode(
-        '{{< signature >}}\n# FOO\n##Bar\n{{< /signature >}}',
+        "{{< signature >}}\n# FOO\n##Bar\n{{< /signature >}}",
         {
-          name: 'signature',
-          label: 'Signature',
+          name: "signature",
+          label: "Signature",
           match: {
-            start: '{{<',
-            end: '>}}',
+            start: "{{<",
+            end: ">}}",
           },
           fields: [
             {
-              name: 'children',
-              label: 'children',
-              type: 'rich-text',
+              name: "children",
+              label: "children",
+              type: "rich-text",
             },
           ],
         }
       );
-      expect(result).toEqual('<signature >\n# FOO\n##Bar\n</signature>');
+      expect(result).toEqual("<signature >\n# FOO\n##Bar\n</signature>");
     });
   });
 });
