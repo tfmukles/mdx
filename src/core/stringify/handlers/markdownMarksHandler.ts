@@ -2,7 +2,7 @@ import { RichTextType } from "@/types";
 import type * as Md from "mdast";
 import type * as Plate from "../../parser/types/plateTypes";
 import { MarkCounts, MarkType } from "../types";
-import { stringifyPropsInline } from "./mdxAttributeSerializer";
+import { serializeMdxJsxTextElement } from "./mdxAttributeSerializer";
 
 // Base interface for all inline elements
 interface BaseInlineElement {
@@ -144,7 +144,7 @@ function processMdxJsxTextElement(
   field: RichTextType,
   imageCallback: (url: string) => string
 ): Md.PhrasingContent {
-  const { attributes, children } = stringifyPropsInline(
+  const { attributes, children } = serializeMdxJsxTextElement(
     {
       type: "mdxJsxTextElement",
       name: node.name,

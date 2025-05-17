@@ -23,116 +23,116 @@ type MdxJsxAttributeValue = MdxJsxAttribute | MdxJsxExpressionAttribute;
  * Serializes the props and children of an MdxJsxFlowElement into MDX attribute values and MDAST children.
  * Handles primitive, null, and object props, and recursively stringifies children using `eat`.
  */
-export function stringifyProps(
-  element: MdxJsxFlowElement,
-  field: RichTextType,
-  imageCallback: (url: string) => string
+export function serializeMdxJsxFlowElement(
+  flowElement: MdxJsxFlowElement,
+  richTextField: RichTextType,
+  imageUrlMapper: (url: string) => string
 ): {
   attributes: MdxJsxAttributeValue[];
   children: Md.Content[];
 } {
-  const attributes: MdxJsxAttributeValue[] = [];
-  const children: Md.Content[] = [];
+  const mdxAttributes: MdxJsxAttributeValue[] = [];
+  const mdxChildren: Md.Content[] = [];
 
   // Serialize element props into MDX attributes
-  Object.entries(element.props).forEach(([key, value]) => {
+  Object.entries(flowElement.props).forEach(([propKey, propValue]) => {
     if (
-      typeof value === "string" ||
-      typeof value === "number" ||
-      typeof value === "boolean"
+      typeof propValue === "string" ||
+      typeof propValue === "number" ||
+      typeof propValue === "boolean"
     ) {
-      attributes.push({
+      mdxAttributes.push({
         type: "mdxJsxAttribute",
-        name: key,
-        value,
+        name: propKey,
+        value: propValue,
       });
-    } else if (value === null) {
-      attributes.push({
+    } else if (propValue === null) {
+      mdxAttributes.push({
         type: "mdxJsxAttribute",
-        name: key,
+        name: propKey,
         value: null,
       });
-    } else if (typeof value === "object") {
-      attributes.push({
+    } else if (typeof propValue === "object") {
+      mdxAttributes.push({
         type: "mdxJsxExpressionAttribute",
-        value: JSON.stringify(value),
+        value: JSON.stringify(propValue),
       });
     }
   });
 
   // Serialize children, handling both strings and nested elements
-  if (element.children) {
-    element.children.forEach((child: any) => {
-      if (typeof child === "string") {
-        children.push({
+  if (flowElement.children) {
+    flowElement.children.forEach((childNode: any) => {
+      if (typeof childNode === "string") {
+        mdxChildren.push({
           type: "text",
-          value: child,
+          value: childNode,
         });
       } else {
-        const value = eat([child], field, imageCallback);
-        children.push(...value);
+        const phrasingContent = eat([childNode], richTextField, imageUrlMapper);
+        mdxChildren.push(...phrasingContent);
       }
     });
   }
 
-  return { attributes, children };
+  return { attributes: mdxAttributes, children: mdxChildren };
 }
 
 /**
  * Serializes the props and children of an MdxJsxTextElement into MDX attribute values and phrasing content.
  * Handles primitive, null, and object props, and recursively stringifies children using `eat`.
  */
-export function stringifyPropsInline(
-  element: MdxJsxTextElement,
-  field: RichTextType,
-  imageCallback: (url: string) => string
+export function serializeMdxJsxTextElement(
+  textElement: MdxJsxTextElement,
+  richTextField: RichTextType,
+  imageUrlMapper: (url: string) => string
 ): {
   attributes: MdxJsxAttributeValue[];
   children: Md.PhrasingContent[];
 } {
-  const attributes: MdxJsxAttributeValue[] = [];
-  const children: Md.PhrasingContent[] = [];
+  const mdxAttributes: MdxJsxAttributeValue[] = [];
+  const mdxChildren: Md.PhrasingContent[] = [];
 
   // Serialize element props into MDX attributes
-  Object.entries(element.props).forEach(([key, value]) => {
+  Object.entries(textElement.props).forEach(([propKey, propValue]) => {
     if (
-      typeof value === "string" ||
-      typeof value === "number" ||
-      typeof value === "boolean"
+      typeof propValue === "string" ||
+      typeof propValue === "number" ||
+      typeof propValue === "boolean"
     ) {
-      attributes.push({
+      mdxAttributes.push({
         type: "mdxJsxAttribute",
-        name: key,
-        value,
+        name: propKey,
+        value: propValue,
       });
-    } else if (value === null) {
-      attributes.push({
+    } else if (propValue === null) {
+      mdxAttributes.push({
         type: "mdxJsxAttribute",
-        name: key,
+        name: propKey,
         value: null,
       });
-    } else if (typeof value === "object") {
-      attributes.push({
+    } else if (typeof propValue === "object") {
+      mdxAttributes.push({
         type: "mdxJsxExpressionAttribute",
-        value: JSON.stringify(value),
+        value: JSON.stringify(propValue),
       });
     }
   });
 
   // Serialize children, handling both strings and nested elements
-  if (element.children) {
-    element.children.forEach((child: any) => {
-      if (typeof child === "string") {
-        children.push({
+  if (textElement.children) {
+    textElement.children.forEach((childNode: any) => {
+      if (typeof childNode === "string") {
+        mdxChildren.push({
           type: "text",
-          value: child,
+          value: childNode,
         });
       } else {
-        const value = eat([child], field, imageCallback);
-        children.push(...(value as Md.PhrasingContent[]));
+        const phrasingContent = eat([childNode], richTextField, imageUrlMapper);
+        mdxChildren.push(...(phrasingContent as Md.PhrasingContent[]));
       }
     });
   }
 
-  return { attributes, children };
+  return { attributes: mdxAttributes, children: mdxChildren };
 }
