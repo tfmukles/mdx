@@ -4,52 +4,54 @@ import type { Pattern } from "./shortcodes";
 /**
  * Extracts all Pattern definitions from a RichTextField's templates.
  * Recursively hoists templates from nested rich-text fields.
- * @param field The RichTextField to extract patterns from.
+ * @param richTextField The RichTextField to extract patterns from.
  * @returns Array of Pattern objects for markdown parsing.
  */
-export const getFieldPatterns = (field: RichTextField): Pattern[] => {
-  const patterns: Pattern[] = [];
-  const allTemplates: RichTextTemplate[] = [];
-  hoistAllTemplates(field, allTemplates);
-  allTemplates.forEach((template) => {
+export const extractPatternsFromField = (
+  richTextField: RichTextField
+): Pattern[] => {
+  const patternList: Pattern[] = [];
+  const collectedTemplates: RichTextTemplate[] = [];
+  collectAllTemplates(richTextField, collectedTemplates);
+  collectedTemplates.forEach((template) => {
     if (typeof template === "string") {
       throw new Error("Global templates not supported");
     }
     if (template.match) {
-      patterns.push({
+      patternList.push({
         start: template.match.start,
         end: template.match.end,
         name: template.match.name || template.name,
         templateName: template.name,
         type: template.inline ? "inline" : "flow",
-        leaf: !template.fields.some((f) => f.name === "children"),
+        leaf: !template.fields.some((field) => field.name === "children"),
       });
     }
   });
-  return patterns;
+  return patternList;
 };
 
 /**
  * Recursively collects all RichTextTemplate objects from a RichTextField,
  * including those nested in child rich-text fields.
- * @param field The RichTextField to collect templates from.
- * @param templates Accumulator array for templates.
+ * @param richTextField The RichTextField to collect templates from.
+ * @param templateAccumulator Accumulator array for templates.
  * @returns The accumulator array with all templates.
  */
-const hoistAllTemplates = (
-  field: RichTextField,
-  templates: RichTextTemplate[] = []
+const collectAllTemplates = (
+  richTextField: RichTextField,
+  templateAccumulator: RichTextTemplate[] = []
 ): RichTextTemplate[] => {
-  field.templates?.forEach((template) => {
+  richTextField.templates?.forEach((template) => {
     if (typeof template === "string") {
       throw new Error("Global templates not supported");
     }
-    templates.push(template);
-    template.fields.forEach((childField) => {
-      if (childField.type === "rich-text") {
-        hoistAllTemplates(childField, templates);
+    templateAccumulator.push(template);
+    template.fields.forEach((nestedField) => {
+      if (nestedField.type === "rich-text") {
+        collectAllTemplates(nestedField, templateAccumulator);
       }
     });
   });
-  return templates;
+  return templateAccumulator;
 };

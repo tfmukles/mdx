@@ -8,7 +8,7 @@ import type { MdxJsxAttribute } from "mdast-util-mdx-jsx";
 import parser from "prettier/esm/parser-espree.mjs";
 import { stringifyMDX } from ".";
 import * as Plate from "../../core/parser/types/plateTypes";
-import { rootElement } from "./ast-transformer";
+import { convertRootElement } from "./ast-transformer";
 
 /**
  * Stringifies inline element properties for MDX JSX attributes and children.
@@ -228,7 +228,7 @@ export function stringifyProps(
             `Nested rich-text element is not a valid shape for field ${fieldDef.name}`
           );
           if (fieldDef.name === "children") {
-            const root = rootElement(propValue, fieldDef, imageCallback);
+            const root = convertRootElement(propValue, fieldDef, imageCallback);
             root.children.forEach((child) => {
               mdxChildren.push(child);
             });

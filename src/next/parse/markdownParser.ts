@@ -6,10 +6,10 @@ import { gfm } from "micromark-extension-gfm";
 import type { Options } from "../shortcodes";
 import { mdxJsx } from "../shortcodes";
 import { mdxJsxFromMarkdown } from "../shortcodes/mdast";
-import { getFieldPatterns } from "../util";
+import { extractPatternsFromField } from "../util";
 
 export function fromMarkdown(markdown: string, field: RichTextField) {
-  const patterns = getFieldPatterns(field);
+  const patterns = extractPatternsFromField(field);
   const acornParser = acorn as Options["acorn"];
 
   return mdastFromMarkdown(markdown, {

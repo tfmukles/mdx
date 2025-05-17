@@ -15,65 +15,65 @@ import { visit } from "unist-util-visit";
  *
  * @param tree - The MDAST root node to process.
  * @param field - The rich text field definition.
- * @param imageCallback - Callback to process image URLs.
+ * @param imageUrlMapper - Callback to process image URLs.
  * @returns The Slate-compatible representation of the tree.
  */
-export const postProcessor = (
-  tree: Root,
-  field: RichTextField,
-  imageCallback: (url: string) => string
+export const processMdxAst = (
+  mdastRoot: Root,
+  richTextField: RichTextField,
+  imageUrlMapper: (url: string) => string
 ) => {
   // Helper to attach props to MDX JSX elements and normalize children
-  const attachPropsToMdxElement = (
-    node: (MdxJsxFlowElement | MdxJsxTextElement) & {
+  const mapMdxElementProps = (
+    mdxNode: (MdxJsxFlowElement | MdxJsxTextElement) & {
       props?: Record<string, any>;
       children: any[];
     }
   ) => {
-    const props: Record<string, any> = {};
+    const mdxProps: Record<string, any> = {};
     // Collect all mdxJsxAttribute attributes as props
-    for (const attribute of node.attributes) {
-      if (attribute.type === "mdxJsxAttribute") {
-        props[attribute.name] = attribute.value;
+    for (const attr of mdxNode.attributes) {
+      if (attr.type === "mdxJsxAttribute") {
+        mdxProps[attr.name] = attr.value;
       } else {
         throw new Error("Unhandled mdxJsxExpressionAttribute");
       }
     }
 
     // Recursively process children and attach as props.children
-    if (node.children.length) {
-      let processedChildren;
-      if (node.type === "mdxJsxTextElement") {
-        processedChildren = postProcessor(
+    if (mdxNode.children.length) {
+      let mappedChildren;
+      if (mdxNode.type === "mdxJsxTextElement") {
+        mappedChildren = processMdxAst(
           {
             type: "root",
-            children: [{ type: "paragraph", children: node.children }],
+            children: [{ type: "paragraph", children: mdxNode.children }],
           },
-          field,
-          imageCallback
+          richTextField,
+          imageUrlMapper
         );
       } else {
-        processedChildren = postProcessor(
-          { type: "root", children: node.children },
-          field,
-          imageCallback
+        mappedChildren = processMdxAst(
+          { type: "root", children: mdxNode.children },
+          richTextField,
+          imageUrlMapper
         );
       }
-      props.children = processedChildren;
+      mdxProps.children = mappedChildren;
     }
 
-    node.props = props;
+    mdxNode.props = mdxProps;
     // Remove original attributes and normalize children to a single empty text node
     // @ts-ignore
-    delete node.attributes;
+    delete mdxNode.attributes;
     // @ts-ignore
-    node.children = [{ type: "text", text: "" }];
+    mdxNode.children = [{ type: "text", text: "" }];
   };
 
   // Visit all MDX JSX elements and attach props
-  visit(tree, "mdxJsxFlowElement", attachPropsToMdxElement);
-  visit(tree, "mdxJsxTextElement", attachPropsToMdxElement);
+  visit(mdastRoot, "mdxJsxFlowElement", mapMdxElementProps);
+  visit(mdastRoot, "mdxJsxTextElement", mapMdxElementProps);
 
   // Convert the processed tree to Slate format
-  return remarkToSlate(tree, field, imageCallback, "", true);
+  return remarkToSlate(mdastRoot, richTextField, imageUrlMapper, "", true);
 };

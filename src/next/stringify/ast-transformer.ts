@@ -1,50 +1,52 @@
 import type * as Plate from "@/core/parser/types/plateTypes";
 import type { RichTextField } from "@/types";
 import type * as Md from "mdast";
-import { eat } from "./inline-marks-processor";
+import { processInlineMarks } from "./inline-marks-processor";
 import { stringifyProps } from "./jsx-attribute-processor";
 
 /**
- * Helper to transform a Plate.RootElement into Md.Root.
- * Used for cases where a root element needs to be converted.
+ * Converts a Plate.RootElement into Md.Root.
  */
-export const preProcess = (
-  tree: Plate.RootElement,
-  field: RichTextField,
-  imageCallback: (url: string) => string
+export const toMdRoot = (
+  plateRoot: Plate.RootElement,
+  richTextField: RichTextField,
+  imageUrlMapper: (url: string) => string
 ) => {
-  const ast = rootElement(tree, field, imageCallback);
-  return ast;
+  const mdRoot = convertRootElement(plateRoot, richTextField, imageUrlMapper);
+  return mdRoot;
 };
 
 /**
- * Helper to transform a Plate.RootElement into Md.Root.
- * Used for cases where a root element needs to be converted.
+ * Converts a Plate.RootElement into Md.Root.
  */
-export const rootElement = (
-  content: Plate.RootElement,
-  field: RichTextField,
-  imageCallback: (url: string) => string
+export const convertRootElement = (
+  plateRoot: Plate.RootElement,
+  richTextField: RichTextField,
+  imageUrlMapper: (url: string) => string
 ): Md.Root => {
-  const children: Md.Content[] = [];
-  content.children?.forEach((child) => {
-    const value = blockElement(child, field, imageCallback);
-    if (value) {
-      children.push(value);
+  const mdChildren: Md.Content[] = [];
+  plateRoot.children?.forEach((plateChild) => {
+    const mdNode = convertBlockElement(
+      plateChild,
+      richTextField,
+      imageUrlMapper
+    );
+    if (mdNode) {
+      mdChildren.push(mdNode);
     }
   });
   return {
     type: "root",
-    children,
+    children: mdChildren,
   };
 };
 
-export const blockElement = (
-  content: Plate.BlockElement,
-  field: RichTextField,
-  imageCallback: (url: string) => string
+export const convertBlockElement = (
+  plateBlock: Plate.BlockElement,
+  richTextField: RichTextField,
+  imageUrlMapper: (url: string) => string
 ): Md.Content | null => {
-  switch (content.type) {
+  switch (plateBlock.type) {
     case "h1":
     case "h2":
     case "h3":
@@ -54,16 +56,18 @@ export const blockElement = (
       return {
         type: "heading",
         // @ts-ignore Type 'number' is not assignable to type '1 | 2 | 3 | 4 | 5 | 6'
-        depth: { h1: 1, h2: 2, h3: 3, h4: 4, h5: 5, h6: 6 }[content.type],
-        children: eat(content.children, field, imageCallback),
+        depth: { h1: 1, h2: 2, h3: 3, h4: 4, h5: 5, h6: 6 }[plateBlock.type],
+        children: processInlineMarks(
+          plateBlock.children,
+          richTextField,
+          imageUrlMapper
+        ),
       };
     case "p":
-      // Ignore empty blocks
-      if (content.children.length === 1) {
-        const onlyChild = content.children[0];
+      if (plateBlock.children.length === 1) {
+        const onlyChild = plateBlock.children[0];
         if (
           onlyChild &&
-          // Slate text nodes don't get a `type` property for text nodes
           (onlyChild.type === "text" || !onlyChild.type) &&
           onlyChild.text === ""
         ) {
@@ -72,52 +76,56 @@ export const blockElement = (
       }
       return {
         type: "paragraph",
-        children: eat(content.children, field, imageCallback),
+        children: processInlineMarks(
+          plateBlock.children,
+          richTextField,
+          imageUrlMapper
+        ),
       };
     case "mermaid":
       return {
         type: "code",
         lang: "mermaid",
-        value: content.value,
+        value: plateBlock.value,
       };
     case "code_block":
       return {
         type: "code",
-        lang: content.lang,
-        value: content.value,
+        lang: plateBlock.lang,
+        value: plateBlock.value,
       };
     case "mdxJsxFlowElement":
-      if (content.name === "table") {
-        const table = content.props as {
+      if (plateBlock.name === "table") {
+        const tableProps = plateBlock.props as {
           align: Md.AlignType[] | undefined;
           tableRows: { tableCells: { value: any }[] }[];
         };
         return {
           type: "table",
-          align: table.align,
-          children: table.tableRows.map((tableRow) => {
-            const tr: Md.TableRow = {
+          align: tableProps.align,
+          children: tableProps.tableRows.map((row) => {
+            const mdRow: Md.TableRow = {
               type: "tableRow",
-              children: tableRow.tableCells.map(({ value }) => {
+              children: row.tableCells.map(({ value }) => {
                 return {
                   type: "tableCell",
-                  children: eat(
+                  children: processInlineMarks(
                     value?.children?.at(0)?.children || [],
-                    field,
-                    imageCallback
+                    richTextField,
+                    imageUrlMapper
                   ),
                 };
               }),
             };
-            return tr;
+            return mdRow;
           }),
         };
       }
       const { children, attributes, useDirective, directiveType } =
-        stringifyProps(content, field, false, imageCallback);
+        stringifyProps(plateBlock, richTextField, false, imageUrlMapper);
       return {
         type: "mdxJsxFlowElement",
-        name: content.name,
+        name: plateBlock.name,
         attributes: attributes,
         children: children,
       };
@@ -127,7 +135,11 @@ export const blockElement = (
         children: [
           {
             type: "paragraph",
-            children: eat(content.children, field, imageCallback),
+            children: processInlineMarks(
+              plateBlock.children,
+              richTextField,
+              imageUrlMapper
+            ),
           },
         ],
       };
@@ -139,51 +151,49 @@ export const blockElement = (
     case "ul":
       return {
         type: "list",
-        ordered: content.type === "ol",
+        ordered: plateBlock.type === "ol",
         spread: false,
-        children: content.children.map((child) =>
-          listItemElement(child, field, imageCallback)
+        children: plateBlock.children.map((item) =>
+          convertListItemElement(item, richTextField, imageUrlMapper)
         ),
       };
     case "html": {
       return {
         type: "html",
-        value: content.value,
+        value: plateBlock.value,
       };
     }
     case "img":
-      // Slate editor treats `img` as a block-level element, wrap
-      // it in an empty paragraph
       return {
         type: "paragraph",
         children: [
           {
             type: "image",
-            url: imageCallback(content.url),
-            alt: content.alt,
-            title: content.caption,
+            url: imageUrlMapper(plateBlock.url),
+            alt: plateBlock.alt,
+            title: plateBlock.caption,
           },
         ],
       };
     case "table":
-      const table = content.props as
+      const tableProps = plateBlock.props as
         | {
             align: Md.AlignType[] | undefined;
           }
         | undefined;
       return {
         type: "table",
-        align: table?.align,
-        children: content.children.map((tableRow) => {
+        align: tableProps?.align,
+        children: plateBlock.children.map((row) => {
           return {
             type: "tableRow",
-            children: tableRow.children.map((tableCell) => {
+            children: row.children.map((cell) => {
               return {
                 type: "tableCell",
-                children: eat(
-                  tableCell.children?.at(0)?.children || [],
-                  field,
-                  imageCallback
+                children: processInlineMarks(
+                  cell.children?.at(0)?.children || [],
+                  richTextField,
+                  imageUrlMapper
                 ),
               };
             }),
@@ -191,86 +201,92 @@ export const blockElement = (
         }),
       };
     default:
-      throw new Error(`BlockElement: ${content.type} is not yet supported`);
-  }
-};
-/**
- * Helper to transform a Plate.ListItemElement into Md.ListItem.
- * Used for cases where a list item element needs to be converted.
- */
-const listItemElement = (
-  content: Plate.ListItemElement,
-  field: RichTextField,
-  imageCallback: (url: string) => string
-): Md.ListItem => {
-  return {
-    type: "listItem",
-    // spread is always false since we don't support block elements in list items
-    // good explanation of the difference: https://stackoverflow.com/questions/43503528/extra-lines-appearing-between-list-items-in-github-markdown
-    spread: false,
-    children: content.children.map((child) => {
-      if (child.type === "lic") {
-        return {
-          type: "paragraph",
-          children: eat(child.children, field, imageCallback),
-        };
-      }
-      return blockContentElement(child, field, imageCallback);
-    }),
-  };
-};
-
-/**
- * Helper to transform a Plate.BlockElement into Md.BlockContent.
- * Used for cases where a block element needs to be converted.
- */
-const blockContentElement = (
-  content: Plate.BlockElement,
-  field: RichTextField,
-  imageCallback: (url: string) => string
-): Md.BlockContent => {
-  switch (content.type) {
-    case "blockquote":
-      return {
-        type: "blockquote",
-        children: content.children.map((child) =>
-          // FIXME: text nodes are probably passed in here by the rich text editor
-          // @ts-ignore
-          blockContentElement(child, field, imageCallback)
-        ),
-      };
-    case "p":
-      return {
-        type: "paragraph",
-        children: eat(content.children, field, imageCallback),
-      };
-    case "ol":
-    case "ul":
-      return {
-        type: "list",
-        ordered: content.type === "ol",
-        spread: false,
-        children: content.children.map((child) =>
-          listItemElement(child, field, imageCallback)
-        ),
-      };
-    default:
       throw new Error(
-        `BlockContentElement: ${content.type} is not yet supported`
+        `convertBlockElement: ${plateBlock.type} is not yet supported`
       );
   }
 };
 
 /**
- * Helper to transform a Plate.BlockElement[] into Md.BlockContent[].
- * Used for cases where an array of block elements needs to be converted.
+ * Converts a Plate.ListItemElement into Md.ListItem.
  */
-export const blockElementsToMdast = (
-  elements: Plate.BlockElement[],
-  field: RichTextField,
-  imageCallback: (url: string) => string
+const convertListItemElement = (
+  plateListItem: Plate.ListItemElement,
+  richTextField: RichTextField,
+  imageUrlMapper: (url: string) => string
+): Md.ListItem => {
+  return {
+    type: "listItem",
+    spread: false,
+    children: plateListItem.children.map((child) => {
+      if (child.type === "lic") {
+        return {
+          type: "paragraph",
+          children: processInlineMarks(
+            child.children,
+            richTextField,
+            imageUrlMapper
+          ),
+        };
+      }
+      return convertBlockContentElement(child, richTextField, imageUrlMapper);
+    }),
+  };
+};
+
+/**
+ * Converts a Plate.BlockElement into Md.BlockContent.
+ */
+const convertBlockContentElement = (
+  plateBlock: Plate.BlockElement,
+  richTextField: RichTextField,
+  imageUrlMapper: (url: string) => string
+): Md.BlockContent => {
+  switch (plateBlock.type) {
+    case "blockquote":
+      return {
+        type: "blockquote",
+        children: plateBlock.children.map((child) =>
+          // FIXME: text nodes are probably passed in here by the rich text editor
+          // @ts-ignore
+          convertBlockContentElement(child, richTextField, imageUrlMapper)
+        ),
+      };
+    case "p":
+      return {
+        type: "paragraph",
+        children: processInlineMarks(
+          plateBlock.children,
+          richTextField,
+          imageUrlMapper
+        ),
+      };
+    case "ol":
+    case "ul":
+      return {
+        type: "list",
+        ordered: plateBlock.type === "ol",
+        spread: false,
+        children: plateBlock.children.map((item) =>
+          convertListItemElement(item, richTextField, imageUrlMapper)
+        ),
+      };
+    default:
+      throw new Error(
+        `convertBlockContentElement: ${plateBlock.type} is not yet supported`
+      );
+  }
+};
+
+/**
+ * Converts an array of Plate.BlockElement into Md.BlockContent[].
+ */
+export const convertBlockElementsToMdast = (
+  plateBlocks: Plate.BlockElement[],
+  richTextField: RichTextField,
+  imageUrlMapper: (url: string) => string
 ): Md.BlockContent[] => {
-  return elements
-    .map((block) => blockElement(block, field, imageCallback))
+  return plateBlocks
+    .map((block) => convertBlockElement(block, richTextField, imageUrlMapper))
     .filter((node): node is Md.BlockContent => !!node);
 };

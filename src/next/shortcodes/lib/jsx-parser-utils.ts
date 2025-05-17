@@ -3,13 +3,13 @@ import { values } from "micromark-util-symbol/values";
 
 /**
  * Finds the key in the `values` object that matches the provided string value.
- * @param value - The string value to look up.
+ * @param symbol - The string value to look up.
  * @returns The key corresponding to the value, or null if not found.
  */
-const getValueKey = (value: string): string | null => {
-  for (const [key, val] of Object.entries(values)) {
-    if (val === value) {
-      return key;
+const getValueKey = (symbol: string): string | null => {
+  for (const [symbolKey, symbolValue] of Object.entries(values)) {
+    if (symbolValue === symbol) {
+      return symbolKey;
     }
   }
   return null;
@@ -17,28 +17,28 @@ const getValueKey = (value: string): string | null => {
 
 /**
  * Finds the code (number) in the `codes` object that corresponds to the given string value.
- * @param value - The string value to look up.
+ * @param symbol - The string value to look up.
  * @returns The code as a number, or null if not found.
  */
-export const findCode = (value: string | undefined | null): number | null => {
-  if (!value) {
+export const findCode = (symbol: string | undefined | null): number | null => {
+  if (!symbol) {
     return null;
   }
-  const key = getValueKey(value);
-  if (key && Object.prototype.hasOwnProperty.call(codes, key)) {
-    return codes[key as keyof typeof codes];
+  const symbolKey = getValueKey(symbol);
+  if (symbolKey && Object.prototype.hasOwnProperty.call(codes, symbolKey)) {
+    return codes[symbolKey as keyof typeof codes];
   }
   return null;
 };
 
 /**
  * Prints the key name in `codes` that matches the provided code number.
- * @param code - The code number to look up.
+ * @param codeValue - The code number to look up.
  */
-export const printCode = (code: number): void => {
-  for (const [key, val] of Object.entries(codes)) {
-    if (val === code) {
-      console.log(key);
+export const printCodeKey = (codeValue: number): void => {
+  for (const [codeKey, codeNum] of Object.entries(codes)) {
+    if (codeNum === codeValue) {
+      console.log(codeKey);
       return;
     }
   }
@@ -47,12 +47,12 @@ export const printCode = (code: number): void => {
 
 /**
  * Logs the events of a given item, showing event type and serialized slice.
- * @param item - The object containing events and a sliceSerialize method.
+ * @param node - The object containing events and a sliceSerialize method.
  */
-export const logSelf = (item: any): void => {
+export const logNodeEvents = (node: any): void => {
   console.log(
-    item.events.map((event: any) => {
-      return `${event[0]} - ${event[1].type} | ${item.sliceSerialize(
+    node.events.map((event: any) => {
+      return `${event[0]} - ${event[1].type} | ${node.sliceSerialize(
         event[1]
       )}`;
     })

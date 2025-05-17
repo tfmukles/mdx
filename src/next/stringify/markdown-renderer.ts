@@ -4,7 +4,7 @@ import { gfmToMarkdown } from "mdast-util-gfm";
 import { Handlers, toMarkdown } from "mdast-util-to-markdown";
 import { text } from "mdast-util-to-markdown/lib/handle/text";
 import { mdxJsxToMarkdown } from "../shortcodes/mdast";
-import { getFieldPatterns } from "../util";
+import { extractPatternsFromField } from "../util";
 
 /**
  * Converts an MDAST tree to Sitepins-flavored Markdown, handling custom escaping rules.
@@ -16,7 +16,7 @@ export const toSitepinsMarkdown = (
   tree: Md.Root,
   field: RichTextField
 ): string => {
-  const patterns = getFieldPatterns(field);
+  const patterns = extractPatternsFromField(field);
 
   // Custom handlers for mdast-util-to-markdown
   // @ts-ignore

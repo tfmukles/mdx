@@ -1,37 +1,37 @@
 import type { Acorn, AcornOptions } from "micromark-factory-mdx-expression";
 import type { Construct, Tokenizer } from "micromark-util-types";
-import { factoryTag } from "./jsx-tag-parser";
+import { createJsxTagTokenizer } from "./jsx-tag-parser";
 
 /**
  * Creates a micromark Construct for parsing inline JSX tags in text context.
- * Uses the factoryTag to handle the parsing state machine.
+ * Uses the createJsxTagTokenizer to handle the parsing state machine.
  *
  * @param acorn - Optional Acorn parser instance for JS expressions.
  * @param acornOptions - Optional Acorn parser options.
- * @param addResult - Whether to add parsing results.
- * @param pattern - Pattern for matching tag names.
+ * @param includeResult - Whether to add parsing results.
+ * @param tagPattern - Pattern for matching tag names.
  * @returns A Construct for micromark to parse inline JSX tags.
  */
 
-export const jsxText: (
+export const createJsxInlineConstruct: (
   acorn: Acorn | undefined,
   acornOptions: AcornOptions | undefined,
-  addResult: boolean | undefined,
-  pattern: any
-) => Construct = function (acorn, acornOptions, addResult, pattern) {
+  includeResult: boolean | undefined,
+  tagPattern: any
+) => Construct = function (acorn, acornOptions, includeResult, tagPattern) {
   /**
    * Tokenizer for inline JSX tags in text.
    */
-  const tokenize: Tokenizer = function (effects, ok, nok) {
-    // Use the factoryTag state machine to parse the tag.
-    return factoryTag.call(
+  const jsxInlineTokenizer: Tokenizer = function (effects, ok, nok) {
+    // Use the createJsxTagTokenizer state machine to parse the tag.
+    return createJsxTagTokenizer.call(
       this,
       effects,
       ok,
       nok,
       acorn,
       acornOptions,
-      addResult,
+      includeResult,
       true, // allowLazy
       "mdxJsxTextTag",
       "mdxJsxTextTagMarker",
@@ -58,9 +58,9 @@ export const jsxText: (
       "mdxJsxTextTagAttributeValueExpression",
       "mdxJsxTextTagAttributeValueExpressionMarker",
       "mdxJsxTextTagAttributeValueExpressionValue",
-      pattern
+      tagPattern
     );
   };
 
-  return { tokenize };
+  return { tokenize: jsxInlineTokenizer };
 };

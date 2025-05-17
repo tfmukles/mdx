@@ -5,27 +5,32 @@ import { codes } from "micromark-util-symbol/codes.js";
 import { types } from "micromark-util-symbol/types.js";
 import type { Construct, State, Tokenizer } from "micromark-util-types";
 import { findCode } from "./jsx-parser-utils";
-import { factoryTag } from "./jsx-tag-parser";
+import { createJsxTagTokenizer } from "./jsx-tag-parser";
 
-export const jsxFlow: (
-  acorn: Acorn | undefined,
-  acornOptions: AcornOptions | undefined,
-  addResult: boolean | undefined,
-  pattern: any
-) => Construct = function (acorn, acornOptions, addResult, pattern) {
-  const tokenize: Tokenizer = function (effects, ok, nok) {
+export const createJsxFlowConstruct: (
+  acornInstance: Acorn | undefined,
+  acornOpts: AcornOptions | undefined,
+  shouldAddResult: boolean | undefined,
+  tagPattern: any
+) => Construct = function (
+  acornInstance,
+  acornOpts,
+  shouldAddResult,
+  tagPattern
+) {
+  const jsxFlowTokenizer: Tokenizer = function (effects, onSuccess, onFailure) {
     // eslint-disable-next-line
-    const context = this;
+    const tokenizeContext = this;
 
-    const startState: State = function (code) {
-      return factoryTag.call(
-        context,
+    const enterTagState: State = function (code) {
+      return createJsxTagTokenizer.call(
+        tokenizeContext,
         effects,
-        factorySpace(effects, afterState, types.whitespace),
-        nok,
-        acorn,
-        acornOptions,
-        addResult,
+        factorySpace(effects, afterTagState, types.whitespace),
+        onFailure,
+        acornInstance,
+        acornOpts,
+        shouldAddResult,
         false,
         "mdxJsxFlowTag",
         "mdxJsxFlowTagMarker",
@@ -52,28 +57,28 @@ export const jsxFlow: (
         "mdxJsxFlowTagAttributeValueExpression",
         "mdxJsxFlowTagAttributeValueExpressionMarker",
         "mdxJsxFlowTagAttributeValueExpressionValue",
-        pattern
+        tagPattern
       )(code);
     };
 
-    const afterState: State = function (code) {
-      const startCharCode = findCode(pattern.start[0]);
-      if (code === startCharCode) {
-        return startState(code);
+    const afterTagState: State = function (code) {
+      const tagStartCode = findCode(tagPattern.start[0]);
+      if (code === tagStartCode) {
+        return enterTagState(code);
       }
       if (code === codes.eof) {
-        return ok(code);
+        return onSuccess(code);
       }
       if (markdownLineEndingOrSpace(code)) {
-        return ok(code);
+        return onSuccess(code);
       }
-      return nok(code);
+      return onFailure(code);
     };
 
-    return startState;
+    return enterTagState;
   };
   return {
-    tokenize,
+    tokenize: jsxFlowTokenizer,
     concrete: true,
   };
 };

@@ -5,65 +5,60 @@ import type * as Md from "mdast";
 import { stringifyPropsInline } from "./jsx-attribute-processor";
 
 /**
- * Helper to transform a Plate.InlineElement into Md.PhrasingContent.
- * Used for cases where an inline element needs to be converted.
+ * Checks if any element in arrayA exists in arrayB.
  */
-const matches = (a: string[], b: string[]) => {
-  return a.some((v) => b.includes(v));
+const hasAnyCommonElement = (arrayA: string[], arrayB: string[]) => {
+  return arrayA.some((value) => arrayB.includes(value));
 };
 
 /**
- * Helper to transform a Plate.InlineElement into Md.PhrasingContent.
- * Used for cases where an inline element needs to be converted.
+ * Inline element type with optional linkify callback.
  */
-type InlineElementWithCallback = Plate.InlineElement & {
-  linkifyTextNode?: (arg: Md.Text) => Md.Link;
+type InlineElementWithLinkify = Plate.InlineElement & {
+  linkifyTextNode?: (textNode: Md.Text) => Md.Link;
 };
 
 /**
- * Helper to transform a Plate.InlineElement into Md.PhrasingContent.
- * Used for cases where an inline element needs to be converted.
+ * Replaces link elements with their text nodes, attaching a linkify callback.
  */
-const replaceLinksWithTextNodes = (content: Plate.InlineElement[]) => {
-  const newItems: InlineElementWithCallback[] = [];
-  content?.forEach((item) => {
-    if (item.type === "a") {
-      if (item.children.length === 1) {
-        const firstChild = item.children[0];
-        if (firstChild?.type === "text") {
-          newItems.push({
-            ...firstChild,
-            linkifyTextNode: (a) => {
-              return {
-                type: "link",
-                url: item.url,
-                title: item.title,
-                children: [a],
-              };
-            },
+const extractTextNodesFromLinks = (elements: Plate.InlineElement[]) => {
+  const result: InlineElementWithLinkify[] = [];
+  elements?.forEach((element) => {
+    if (element.type === "a") {
+      if (element.children.length === 1) {
+        const onlyChild = element.children[0];
+        if (onlyChild?.type === "text") {
+          result.push({
+            ...onlyChild,
+            linkifyTextNode: (textNode) => ({
+              type: "link",
+              url: element.url,
+              title: element.title,
+              children: [textNode],
+            }),
           });
         } else {
-          newItems.push(item);
+          result.push(element);
         }
       } else {
-        newItems.push(item);
+        result.push(element);
       }
     } else {
-      newItems.push(item);
+      result.push(element);
     }
   });
-  return newItems;
+  return result;
 };
 
 /**
- * Links should be processed via 'linkifyTextNode', otherwise handle phrasing content
+ * Converts a Plate.InlineElement (except links) to Md.PhrasingContent.
  */
-const inlineElementExceptLink = (
-  content: InlineElementWithCallback,
+const convertInlineElement = (
+  element: InlineElementWithLinkify,
   field: RichTextField,
-  imageCallback: (url: string) => string
+  imageUrlMapper: (url: string) => string
 ): Md.PhrasingContent => {
-  switch (content.type) {
+  switch (element.type) {
     case "a":
       throw new Error(
         `Unexpected node of type "a", link elements should be processed after all inline elements have resolved`
@@ -71,9 +66,9 @@ const inlineElementExceptLink = (
     case "img":
       return {
         type: "image",
-        url: imageCallback(content.url),
-        alt: content.alt,
-        title: content.caption,
+        url: imageUrlMapper(element.url),
+        alt: element.alt,
+        title: element.caption,
       };
     case "break":
       return {
@@ -81,192 +76,214 @@ const inlineElementExceptLink = (
       };
     case "mdxJsxTextElement": {
       const { attributes, children } = stringifyPropsInline(
-        content,
+        element,
         field,
-        imageCallback
+        imageUrlMapper
       );
-      let c = children;
+      let processedChildren = children;
       if (children.length) {
         const firstChild = children[0];
-        // @ts-ignore FIXME: we're going outside of the MDAST type, which can include a paragraph here
+        // @ts-ignore
         if (firstChild && firstChild.type === "paragraph") {
           // @ts-ignore
-          c = firstChild.children;
+          processedChildren = firstChild.children;
         }
       }
       return {
         type: "mdxJsxTextElement",
-        name: content.name,
+        name: element.name,
         attributes,
-        children: c,
+        children: processedChildren,
       };
     }
     case "html_inline": {
       return {
         type: "html",
-        value: content.value,
+        value: element.value,
       };
     }
     default:
       // @ts-expect-error
-      if (!content.type && typeof content.text === "string") {
-        return text(content);
+      if (!element.type && typeof element.text === "string") {
+        return createTextNode(element);
       }
-      throw new Error(`InlineElement: ${content.type} is not supported`);
+      throw new Error(`InlineElement: ${element.type} is not supported`);
   }
 };
 
 /**
- * Helper to transform a Plate.TextElement into Md.Text.
- * Used for cases where a text element needs to be converted.
+ * Converts a Plate.TextElement to Md.Text.
  */
-const text = (content: { text: string }) => {
+const createTextNode = (element: { text: string }) => {
   return {
     type: "text" as const,
-    value: content.text,
+    value: element.text,
   };
 };
 
 /**
- * Helper to transform a Plate.InlineElement into Md.PhrasingContent.
- * Used for cases where an inline element needs to be converted.
+ * Converts an array of Plate.InlineElement to Md.PhrasingContent[].
  */
-export const eat = (
-  c: InlineElementWithCallback[],
+export const processInlineMarks = (
+  elements: InlineElementWithLinkify[],
   field: RichTextField,
-  imageCallback: (url: string) => string
+  imageUrlMapper: (url: string) => string
 ): Md.PhrasingContent[] => {
-  const content = replaceLinksWithTextNodes(c);
-  const first = content[0];
-  if (!first) {
+  const processedElements = extractTextNodesFromLinks(elements);
+  const firstElement = processedElements[0];
+  if (!firstElement) {
     return [];
   }
-  if (first && first?.type !== "text") {
-    if (first.type === "a") {
+  if (firstElement && firstElement?.type !== "text") {
+    if (firstElement.type === "a") {
       return [
         {
           type: "link",
-          url: first.url,
-          title: first.title,
-          children: eat(
-            first.children,
+          url: firstElement.url,
+          title: firstElement.title,
+          children: processInlineMarks(
+            firstElement.children,
             field,
-            imageCallback
+            imageUrlMapper
           ) as Md.StaticPhrasingContent[],
         },
-        ...eat(content.slice(1), field, imageCallback),
+        ...processInlineMarks(
+          processedElements.slice(1),
+          field,
+          imageUrlMapper
+        ),
       ];
     }
     // non-text nodes can't be merged. Eg. img, break. So process them and move on to the rest
     return [
-      inlineElementExceptLink(first, field, imageCallback),
-      ...eat(content.slice(1), field, imageCallback),
+      convertInlineElement(firstElement, field, imageUrlMapper),
+      ...processInlineMarks(processedElements.slice(1), field, imageUrlMapper),
     ];
   }
-  const marks = getTextMarks(first);
+  const marks = getTextMarks(firstElement);
 
   if (marks.length === 0) {
-    if (first.linkifyTextNode) {
+    if (firstElement.linkifyTextNode) {
       return [
-        first.linkifyTextNode(text(first)),
-        ...eat(content.slice(1), field, imageCallback),
+        firstElement.linkifyTextNode(createTextNode(firstElement)),
+        ...processInlineMarks(
+          processedElements.slice(1),
+          field,
+          imageUrlMapper
+        ),
       ];
     } else {
-      return [text(first), ...eat(content.slice(1), field, imageCallback)];
+      return [
+        createTextNode(firstElement),
+        ...processInlineMarks(
+          processedElements.slice(1),
+          field,
+          imageUrlMapper
+        ),
+      ];
     }
   }
-  let nonMatchingSiblingIndex: number = 0;
+  let nonMatchingIndex: number = 0;
   if (
-    content.slice(1).every((content, index) => {
-      if (matches(marks, getTextMarks(content))) {
+    processedElements.slice(1).every((element, idx) => {
+      if (hasAnyCommonElement(marks, getTextMarks(element))) {
         return true;
       } else {
-        nonMatchingSiblingIndex = index;
+        nonMatchingIndex = idx;
         return false;
       }
     })
   ) {
     // Every sibling matches, so capture all of them in this node
-    nonMatchingSiblingIndex = content.length - 1;
+    nonMatchingIndex = processedElements.length - 1;
   }
-  const matchingSiblings = content.slice(1, nonMatchingSiblingIndex + 1);
+  const matchingSiblings = processedElements.slice(1, nonMatchingIndex + 1);
   const markCounts: {
     [key in "strong" | "emphasis" | "inlineCode" | "delete"]?: number;
   } = {};
   marks.forEach((mark) => {
     let count = 1;
-    matchingSiblings.every((sibling, index) => {
+    matchingSiblings.every((sibling, idx) => {
       if (getTextMarks(sibling).includes(mark)) {
-        count = index + 1;
+        count = idx + 1;
         return true;
       }
     });
     markCounts[mark] = count;
   });
-  let count = 0;
-  let markToProcess: "strong" | "emphasis" | "inlineCode" | "delete" | null =
+  let maxCount = 0;
+  let markToApply: "strong" | "emphasis" | "inlineCode" | "delete" | null =
     null;
   Object.entries(markCounts).forEach(([mark, markCount]) => {
     const m = mark as "strong" | "emphasis" | "inlineCode";
-    if (markCount > count) {
-      count = markCount;
-      markToProcess = m;
+    if (markCount > maxCount) {
+      maxCount = markCount;
+      markToApply = m;
     }
   });
-  if (!markToProcess) {
-    return [text(first), ...eat(content.slice(1), field, imageCallback)];
+  if (!markToApply) {
+    return [
+      createTextNode(firstElement),
+      ...processInlineMarks(processedElements.slice(1), field, imageUrlMapper),
+    ];
   }
-  if (markToProcess === "inlineCode") {
-    if (nonMatchingSiblingIndex) {
+  if (markToApply === "inlineCode") {
+    if (nonMatchingIndex) {
       throw new Error(`Marks inside inline code are not supported`);
     }
-    const node = {
-      type: markToProcess,
-      value: first.text,
+    const codeNode = {
+      type: markToApply,
+      value: firstElement.text,
     };
     return [
-      first.linkifyTextNode?.(node) ?? node,
-      ...eat(content.slice(nonMatchingSiblingIndex + 1), field, imageCallback),
+      firstElement.linkifyTextNode?.(codeNode) ?? codeNode,
+      ...processInlineMarks(
+        processedElements.slice(nonMatchingIndex + 1),
+        field,
+        imageUrlMapper
+      ),
     ];
   }
   return [
     {
-      type: markToProcess,
-      children: eat(
+      type: markToApply,
+      children: processInlineMarks(
         [
-          ...[first, ...matchingSiblings].map((sibling) =>
-            cleanNode(sibling, markToProcess)
+          ...[firstElement, ...matchingSiblings].map((sibling) =>
+            removeMarkFromNode(sibling, markToApply)
           ),
         ],
         field,
-        imageCallback
+        imageUrlMapper
       ),
     },
-    ...eat(content.slice(nonMatchingSiblingIndex + 1), field, imageCallback),
+    ...processInlineMarks(
+      processedElements.slice(nonMatchingIndex + 1),
+      field,
+      imageUrlMapper
+    ),
   ];
 };
 
 /**
- * Helper to clean up the node by removing the mark that was used to create it.
- * This is necessary because the node may have been created with a mark that
- * is not needed anymore.
+ * Removes a specific mark from the node.
  */
-const cleanNode = (
-  node: InlineElementWithCallback,
+const removeMarkFromNode = (
+  node: InlineElementWithLinkify,
   mark: "strong" | "emphasis" | "inlineCode" | "delete" | null
 ): Plate.InlineElement => {
   if (!mark) {
     return node;
   }
   const cleanedNode: Record<string, unknown> = {};
-  const markToClear = {
+  const markKey = {
     strong: "bold",
     emphasis: "italic",
     inlineCode: "code",
     delete: "strikethrough",
   }[mark];
   Object.entries(node).map(([key, value]) => {
-    if (key !== markToClear) {
+    if (key !== markKey) {
       cleanedNode[key] = value;
     }
   });

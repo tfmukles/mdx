@@ -1,6 +1,6 @@
 import {
-  cont as idCont,
-  start as idStart,
+  cont as isIdentifierContinuation,
+  start as isIdentifierStart,
 } from "estree-util-is-identifier-name";
 import type { Acorn, AcornOptions } from "micromark-factory-mdx-expression";
 import { factoryMdxExpression } from "micromark-factory-mdx-expression";
@@ -31,7 +31,7 @@ import { Pattern } from "./jsx-syntax-patterns";
  * Factory function for parsing custom JSX-like tags based on a pattern.
  * Handles tag openers, names, attributes, and closers.
  */
-export function factoryTag(
+export function createJsxTagTokenizer(
   this: TokenizeContext,
   effects: Effects,
   ok: State,
@@ -68,72 +68,72 @@ export function factoryTag(
   pattern: Pattern
 ) {
   // eslint-disable-next-line
-  const self = this;
-  let returnState: State;
-  let quoteMarker: NonNullable<Code> | undefined;
-  let startPoint: Point | undefined;
+  const context = this;
+  let nextState: State;
+  let currentQuoteMarker: NonNullable<Code> | undefined;
+  let tagStartPoint: Point | undefined;
   // Index for multi-character tag openers/closers
-  let tagOpenerIdx = 1;
-  let tagCloserIdx = 1;
-  let tagNameIdx = 1;
+  let tagOpenerIndex = 1;
+  let tagCloserIndex = 1;
+  let tagNameIndex = 1;
 
   // Entry state: parse tag opener
-  const start: State = function (code) {
-    startPoint = self.now();
+  const parseTagOpener: State = function (code) {
+    tagStartPoint = context.now();
     effects.enter(tagType);
     effects.enter(tagMarkerType);
     effects.consume(code);
     if (pattern.start.length === 1) {
       effects.exit(tagMarkerType);
-      return afterStart;
+      return afterTagOpener;
     }
-    return tagOpenerSequence;
+    return parseTagOpenerSequence;
   };
 
   // Parse multi-character tag opener
-  const tagOpenerSequence: State = function (code) {
-    const expectedChar = findCode(pattern.start[tagOpenerIdx]);
+  const parseTagOpenerSequence: State = function (code) {
+    const expectedChar = findCode(pattern.start[tagOpenerIndex]);
     if (code === expectedChar) {
       effects.consume(code);
-      if (pattern.start.length - 1 === tagOpenerIdx) {
+      if (pattern.start.length - 1 === tagOpenerIndex) {
         effects.exit(tagMarkerType);
-        return afterStart;
+        return afterTagOpener;
       }
-      tagOpenerIdx++;
-      return tagOpenerSequence;
+      tagOpenerIndex++;
+      return parseTagOpenerSequence;
     }
     return nok;
   };
 
   // After tag opener, expect whitespace or tag name
-  const afterStart: State = function (code) {
-    returnState = beforeName;
-    return optionalEsWhitespace(code);
+  const afterTagOpener: State = function (code) {
+    nextState = beforeTagName;
+    return parseOptionalWhitespace(code);
   };
 
   // Before tag name or closing marker
-  const beforeName: State = function (code) {
+  const beforeTagName: State = function (code) {
     if (code === codes.slash) {
       effects.enter(tagClosingMarkerType);
       effects.consume(code);
       effects.exit(tagClosingMarkerType);
-      returnState = beforeClosingTagName;
-      return optionalEsWhitespace;
+      nextState = beforeClosingTagName;
+      return parseOptionalWhitespace;
     }
 
     if (code === codes.greaterThan) {
-      return tagEnd(code);
+      return parseTagEnd(code);
     }
 
     if (
       code !== codes.eof &&
-      idStart(code) &&
+      isIdentifierStart(code) &&
       findCode(pattern.name[0]) === code
     ) {
       effects.enter(tagNameType);
       effects.enter(tagNamePrimaryType);
       effects.consume(code);
-      return primaryName;
+      return parsePrimaryTagName;
     }
 
     return nok(code);
@@ -142,29 +142,29 @@ export function factoryTag(
   // Before closing tag name
   const beforeClosingTagName: State = function (code) {
     if (code === codes.greaterThan) {
-      return tagEnd(code);
+      return parseTagEnd(code);
     }
 
-    if (code !== codes.eof && idStart(code)) {
+    if (code !== codes.eof && isIdentifierStart(code)) {
       effects.enter(tagNameType);
       effects.enter(tagNamePrimaryType);
       effects.consume(code);
-      return primaryName;
+      return parsePrimaryTagName;
     }
 
     return nok(code);
   };
 
   // Parse tag name (primary part)
-  const primaryName: State = function (code) {
-    const nextCharInName = pattern.name[tagNameIdx];
+  const parsePrimaryTagName: State = function (code) {
+    const nextCharInName = pattern.name[tagNameIndex];
     const nextCodeInName = nextCharInName ? findCode(nextCharInName) : null;
     if (nextCodeInName === code) {
       effects.consume(code);
-      tagNameIdx++;
-      return primaryName;
+      tagNameIndex++;
+      return parsePrimaryTagName;
     }
-    tagNameIdx = 0;
+    tagNameIndex = 0;
 
     if (
       code === codes.dot ||
@@ -176,22 +176,22 @@ export function factoryTag(
       unicodeWhitespace(code)
     ) {
       effects.exit(tagNamePrimaryType);
-      returnState = afterPrimaryName;
-      return optionalEsWhitespace(code);
+      nextState = afterPrimaryTagName;
+      return parseOptionalWhitespace(code);
     }
 
     return nok(code);
   };
 
   // After tag name (primary)
-  const afterPrimaryName: State = function (code) {
+  const afterPrimaryTagName: State = function (code) {
     // Member name (e.g., <Popover.PopoverButton>)
     if (code === codes.dot) {
       effects.enter(tagNameMemberMarkerType);
       effects.consume(code);
       effects.exit(tagNameMemberMarkerType);
-      returnState = beforeMemberName;
-      return optionalEsWhitespace;
+      nextState = beforeMemberTagName;
+      return parseOptionalWhitespace;
     }
 
     // Local name (e.g., <xml:text>)
@@ -199,32 +199,32 @@ export function factoryTag(
       effects.enter(tagNamePrefixMarkerType);
       effects.consume(code);
       effects.exit(tagNamePrefixMarkerType);
-      returnState = beforeLocalName;
-      return optionalEsWhitespace;
+      nextState = beforeLocalTagName;
+      return parseOptionalWhitespace;
     }
 
     // End pattern (for closing tags too)
     if (code === findCode(pattern.end[0])) {
-      const tagCloserSequence: State = function (code) {
-        const expectedChar = findCode(pattern.end[tagCloserIdx]);
+      const parseTagCloserSequence: State = function (code) {
+        const expectedChar = findCode(pattern.end[tagCloserIndex]);
         if (code === expectedChar) {
-          if (pattern.end.length - 1 === tagCloserIdx) {
+          if (pattern.end.length - 1 === tagCloserIndex) {
             effects.exit(tagNameType);
-            return beforeAttribute(code);
+            return beforeAttributeOrCloser(code);
           }
-          tagCloserIdx++;
+          tagCloserIndex++;
           effects.consume(code);
-          return tagCloserSequence;
+          return parseTagCloserSequence;
         }
-        tagCloserIdx = 0;
+        tagCloserIndex = 0;
         return nok;
       };
       if (pattern.end.length === 1) {
         effects.exit(tagNameType);
-        return beforeAttribute(code);
+        return beforeAttributeOrCloser(code);
       } else {
         effects.consume(code);
-        return tagCloserSequence;
+        return parseTagCloserSequence;
       }
     }
 
@@ -233,10 +233,10 @@ export function factoryTag(
       code === codes.slash ||
       code === codes.greaterThan ||
       code === codes.leftCurlyBrace ||
-      (code !== codes.eof && idStart(code))
+      (code !== codes.eof && isIdentifierStart(code))
     ) {
       effects.exit(tagNameType);
-      return beforeAttribute(code);
+      return beforeAttributeOrCloser(code);
     }
 
     // Shortcut for unkeyed value
@@ -256,20 +256,23 @@ export function factoryTag(
   };
 
   // Before member name (after '.')
-  const beforeMemberName: State = function (code) {
-    if (code !== codes.eof && idStart(code)) {
+  const beforeMemberTagName: State = function (code) {
+    if (code !== codes.eof && isIdentifierStart(code)) {
       effects.enter(tagNameMemberType);
       effects.consume(code);
-      return memberName;
+      return parseMemberTagName;
     }
     return nok(code);
   };
 
   // Parse member name
-  const memberName: State = function (code) {
-    if (code === codes.dash || (code !== codes.eof && idCont(code))) {
+  const parseMemberTagName: State = function (code) {
+    if (
+      code === codes.dash ||
+      (code !== codes.eof && isIdentifierContinuation(code))
+    ) {
       effects.consume(code);
-      return memberName;
+      return parseMemberTagName;
     }
 
     if (
@@ -281,11 +284,11 @@ export function factoryTag(
       unicodeWhitespace(code)
     ) {
       effects.exit(tagNameMemberType);
-      returnState = afterMemberName;
-      return optionalEsWhitespace(code);
+      nextState = afterMemberTagName;
+      return parseOptionalWhitespace(code);
     }
 
-    crash(
+    throwUnexpected(
       code,
       "in member name",
       "a name character such as letters, digits, `$`, or `_`; whitespace before attributes; or the end of the tag" +
@@ -296,37 +299,37 @@ export function factoryTag(
   };
 
   // After member name (no colons allowed)
-  const afterMemberName: State = function (code) {
+  const afterMemberTagName: State = function (code) {
     if (code === codes.dot) {
       effects.enter(tagNameMemberMarkerType);
       effects.consume(code);
       effects.exit(tagNameMemberMarkerType);
-      returnState = beforeMemberName;
-      return optionalEsWhitespace;
+      nextState = beforeMemberTagName;
+      return parseOptionalWhitespace;
     }
 
     if (
       code === codes.slash ||
       code === codes.greaterThan ||
       code === codes.leftCurlyBrace ||
-      (code !== codes.eof && idStart(code))
+      (code !== codes.eof && isIdentifierStart(code))
     ) {
       effects.exit(tagNameType);
-      return beforeAttribute(code);
+      return beforeAttributeOrCloser(code);
     }
 
     return nok(code);
   };
 
   // Before local name (after ':')
-  const beforeLocalName: State = function (code) {
-    if (code !== codes.eof && idStart(code)) {
+  const beforeLocalTagName: State = function (code) {
+    if (code !== codes.eof && isIdentifierStart(code)) {
       effects.enter(tagNameLocalType);
       effects.consume(code);
-      return localName;
+      return parseLocalTagName;
     }
 
-    crash(
+    throwUnexpected(
       code,
       "before local name",
       "a character that can start a name, such as a letter, `$`, or `_`" +
@@ -338,10 +341,13 @@ export function factoryTag(
   };
 
   // Parse local name
-  const localName: State = function (code) {
-    if (code === codes.dash || (code !== codes.eof && idCont(code))) {
+  const parseLocalTagName: State = function (code) {
+    if (
+      code === codes.dash ||
+      (code !== codes.eof && isIdentifierContinuation(code))
+    ) {
       effects.consume(code);
-      return localName;
+      return parseLocalTagName;
     }
 
     if (
@@ -352,11 +358,11 @@ export function factoryTag(
       unicodeWhitespace(code)
     ) {
       effects.exit(tagNameLocalType);
-      returnState = afterLocalName;
-      return optionalEsWhitespace(code);
+      nextState = afterLocalTagName;
+      return parseOptionalWhitespace(code);
     }
 
-    crash(
+    throwUnexpected(
       code,
       "in local name",
       "a name character such as letters, digits, `$`, or `_`; whitespace before attributes; or the end of the tag"
@@ -364,22 +370,22 @@ export function factoryTag(
   };
 
   // After local name (no colons or periods allowed)
-  const afterLocalName: State = function (code) {
+  const afterLocalTagName: State = function (code) {
     if (
       code === codes.slash ||
       code === codes.greaterThan ||
       code === codes.leftCurlyBrace ||
-      (code !== codes.eof && idStart(code))
+      (code !== codes.eof && isIdentifierStart(code))
     ) {
       effects.exit(tagNameType);
-      return beforeAttribute(code);
+      return beforeAttributeOrCloser(code);
     }
     if (code === findCode(pattern.end)) {
       effects.exit(tagNameType);
-      return beforeAttribute(code);
+      return beforeAttributeOrCloser(code);
     }
 
-    crash(
+    throwUnexpected(
       code,
       "after local name",
       "a character that can start an attribute name, such as a letter, `$`, or `_`; whitespace before attributes; or the end of the tag"
@@ -387,33 +393,33 @@ export function factoryTag(
   };
 
   // Before attribute or tag closer
-  const beforeAttribute: State = function (code) {
+  const beforeAttributeOrCloser: State = function (code) {
     if (code === findCode(pattern.end[0])) {
-      const tagCloserSequence: State = function (code) {
-        const expectedChar = findCode(pattern.end[tagCloserIdx]);
+      const parseTagCloserSequence: State = function (code) {
+        const expectedChar = findCode(pattern.end[tagCloserIndex]);
         if (code === expectedChar) {
-          if (pattern.end.length - 1 === tagCloserIdx) {
-            return beforeAttribute(code);
+          if (pattern.end.length - 1 === tagCloserIndex) {
+            return beforeAttributeOrCloser(code);
           }
-          tagCloserIdx++;
+          tagCloserIndex++;
           effects.consume(code);
-          return tagCloserSequence;
+          return parseTagCloserSequence;
         }
-        tagCloserIdx = 0;
+        tagCloserIndex = 0;
         return nok;
       };
       if (pattern.end.length === 1) {
         if (pattern.leaf) {
           effects.enter(tagSelfClosingMarker);
           effects.exit(tagSelfClosingMarker);
-          returnState = selfClosing;
-          return optionalEsWhitespace;
+          nextState = parseSelfClosing;
+          return parseOptionalWhitespace;
         } else {
-          return tagEnd(code);
+          return parseTagEnd(code);
         }
       } else {
         effects.consume(code);
-        return tagCloserSequence;
+        return parseTagCloserSequence;
       }
     }
     // Handle single-character end
@@ -421,22 +427,22 @@ export function factoryTag(
       if (pattern.leaf) {
         effects.enter(tagSelfClosingMarker);
         effects.exit(tagSelfClosingMarker);
-        returnState = selfClosing;
-        return optionalEsWhitespace;
+        nextState = parseSelfClosing;
+        return parseOptionalWhitespace;
       } else {
-        return tagEnd(code);
+        return parseTagEnd(code);
       }
     }
 
     if (code === codes.greaterThan) {
-      return tagEnd(code);
+      return parseTagEnd(code);
     }
 
     // Attribute expression
     if (code === codes.leftCurlyBrace) {
-      assert(startPoint, "expected `startPoint` to be defined");
+      assert(tagStartPoint, "expected `tagStartPoint` to be defined");
       return factoryMdxExpression.call(
-        self,
+        context,
         effects,
         afterAttributeExpression,
         tagExpressionAttributeType,
@@ -448,17 +454,17 @@ export function factoryTag(
         true,
         false,
         allowLazy,
-        startPoint.column
+        tagStartPoint.column
       )(code);
     }
 
     // Start of attribute name
-    if (code !== codes.eof && idStart(code)) {
+    if (code !== codes.eof && isIdentifierStart(code)) {
       effects.enter(tagAttributeType);
       effects.enter(tagAttributeNameType);
       effects.enter(tagAttributeNamePrimaryType);
       effects.consume(code);
-      return attributePrimaryName;
+      return parseAttributePrimaryName;
     }
 
     return nok;
@@ -466,15 +472,18 @@ export function factoryTag(
 
   // After attribute expression
   const afterAttributeExpression: State = function (code) {
-    returnState = beforeAttribute;
-    return optionalEsWhitespace(code);
+    nextState = beforeAttributeOrCloser;
+    return parseOptionalWhitespace(code);
   };
 
   // Parse attribute name (primary)
-  const attributePrimaryName: State = function (code) {
-    if (code === codes.dash || (code !== codes.eof && idCont(code))) {
+  const parseAttributePrimaryName: State = function (code) {
+    if (
+      code === codes.dash ||
+      (code !== codes.eof && isIdentifierContinuation(code))
+    ) {
       effects.consume(code);
-      return attributePrimaryName;
+      return parseAttributePrimaryName;
     }
 
     if (
@@ -487,8 +496,8 @@ export function factoryTag(
       unicodeWhitespace(code)
     ) {
       effects.exit(tagAttributeNamePrimaryType);
-      returnState = afterAttributePrimaryName;
-      return optionalEsWhitespace(code);
+      nextState = afterAttributePrimaryName;
+      return parseOptionalWhitespace(code);
     }
 
     return nok(code);
@@ -500,8 +509,8 @@ export function factoryTag(
       effects.enter(tagAttributeNamePrefixMarkerType);
       effects.consume(code);
       effects.exit(tagAttributeNamePrefixMarkerType);
-      returnState = beforeAttributeLocalName;
-      return optionalEsWhitespace;
+      nextState = beforeAttributeLocalName;
+      return parseOptionalWhitespace;
     }
 
     if (code === codes.equalsTo) {
@@ -509,8 +518,8 @@ export function factoryTag(
       effects.enter(tagAttributeInitializerMarkerType);
       effects.consume(code);
       effects.exit(tagAttributeInitializerMarkerType);
-      returnState = beforeAttributeValue;
-      return optionalEsWhitespace;
+      nextState = beforeAttributeValue;
+      return parseOptionalWhitespace;
     }
 
     if (
@@ -519,12 +528,12 @@ export function factoryTag(
       code === codes.leftCurlyBrace ||
       markdownLineEndingOrSpace(code) ||
       unicodeWhitespace(code) ||
-      (code !== codes.eof && idStart(code))
+      (code !== codes.eof && isIdentifierStart(code))
     ) {
       effects.exit(tagAttributeNameType);
       effects.exit(tagAttributeType);
-      returnState = beforeAttribute;
-      return optionalEsWhitespace(code);
+      nextState = beforeAttributeOrCloser;
+      return parseOptionalWhitespace(code);
     }
 
     return nok(code);
@@ -532,13 +541,13 @@ export function factoryTag(
 
   // Before local attribute name (after ':')
   const beforeAttributeLocalName: State = function (code) {
-    if (code !== codes.eof && idStart(code)) {
+    if (code !== codes.eof && isIdentifierStart(code)) {
       effects.enter(tagAttributeNameLocalType);
       effects.consume(code);
-      return attributeLocalName;
+      return parseAttributeLocalName;
     }
 
-    crash(
+    throwUnexpected(
       code,
       "before local attribute name",
       "a character that can start an attribute name, such as a letter, `$`, or `_`; `=` to initialize a value; or the end of the tag"
@@ -546,10 +555,13 @@ export function factoryTag(
   };
 
   // Parse local attribute name
-  const attributeLocalName: State = function (code) {
-    if (code === codes.dash || (code !== codes.eof && idCont(code))) {
+  const parseAttributeLocalName: State = function (code) {
+    if (
+      code === codes.dash ||
+      (code !== codes.eof && isIdentifierContinuation(code))
+    ) {
       effects.consume(code);
-      return attributeLocalName;
+      return parseAttributeLocalName;
     }
 
     if (
@@ -562,11 +574,11 @@ export function factoryTag(
     ) {
       effects.exit(tagAttributeNameLocalType);
       effects.exit(tagAttributeNameType);
-      returnState = afterAttributeLocalName;
-      return optionalEsWhitespace(code);
+      nextState = afterAttributeLocalName;
+      return parseOptionalWhitespace(code);
     }
 
-    crash(
+    throwUnexpected(
       code,
       "in local attribute name",
       "an attribute name character such as letters, digits, `$`, or `_`; `=` to initialize a value; whitespace before attributes; or the end of the tag"
@@ -579,21 +591,21 @@ export function factoryTag(
       effects.enter(tagAttributeInitializerMarkerType);
       effects.consume(code);
       effects.exit(tagAttributeInitializerMarkerType);
-      returnState = beforeAttributeValue;
-      return optionalEsWhitespace;
+      nextState = beforeAttributeValue;
+      return parseOptionalWhitespace;
     }
 
     if (
       code === codes.slash ||
       code === codes.greaterThan ||
       code === codes.leftCurlyBrace ||
-      (code !== codes.eof && idStart(code))
+      (code !== codes.eof && isIdentifierStart(code))
     ) {
       effects.exit(tagAttributeType);
-      return beforeAttribute(code);
+      return beforeAttributeOrCloser(code);
     }
 
-    crash(
+    throwUnexpected(
       code,
       "after local attribute name",
       "a character that can start an attribute name, such as a letter, `$`, or `_`; `=` to initialize a value; or the end of the tag"
@@ -607,14 +619,14 @@ export function factoryTag(
       effects.enter(tagAttributeValueLiteralMarkerType);
       effects.consume(code);
       effects.exit(tagAttributeValueLiteralMarkerType);
-      quoteMarker = code;
-      return attributeValueQuotedStart;
+      currentQuoteMarker = code;
+      return parseQuotedAttributeValueStart;
     }
 
     if (code === codes.leftCurlyBrace) {
-      assert(startPoint, "expected `startPoint` to be defined");
+      assert(tagStartPoint, "expected `tagStartPoint` to be defined");
       return factoryMdxExpression.call(
-        self,
+        context,
         effects,
         afterAttributeValueExpression,
         tagAttributeValueExpressionType,
@@ -626,7 +638,7 @@ export function factoryTag(
         false,
         false,
         allowLazy,
-        startPoint.column
+        tagStartPoint.column
       )(code);
     }
 
@@ -636,60 +648,63 @@ export function factoryTag(
   // After attribute value expression
   const afterAttributeValueExpression: State = function (code) {
     effects.exit(tagAttributeType);
-    returnState = beforeAttribute;
-    return optionalEsWhitespace(code);
+    nextState = beforeAttributeOrCloser;
+    return parseOptionalWhitespace(code);
   };
 
   // Start of quoted attribute value
-  const attributeValueQuotedStart: State = function (code) {
-    assert(quoteMarker !== undefined, "expected `quoteMarker` to be defined");
+  const parseQuotedAttributeValueStart: State = function (code) {
+    assert(
+      currentQuoteMarker !== undefined,
+      "expected `currentQuoteMarker` to be defined"
+    );
 
     if (code === codes.eof) {
       return nok(code);
     }
 
-    if (code === quoteMarker) {
+    if (code === currentQuoteMarker) {
       effects.enter(tagAttributeValueLiteralMarkerType);
       effects.consume(code);
       effects.exit(tagAttributeValueLiteralMarkerType);
       effects.exit(tagAttributeValueLiteralType);
       effects.exit(tagAttributeType);
-      quoteMarker = undefined;
-      returnState = beforeAttribute;
-      return optionalEsWhitespace;
+      currentQuoteMarker = undefined;
+      nextState = beforeAttributeOrCloser;
+      return parseOptionalWhitespace;
     }
 
     if (markdownLineEnding(code)) {
-      returnState = attributeValueQuotedStart;
-      return optionalEsWhitespace(code);
+      nextState = parseQuotedAttributeValueStart;
+      return parseOptionalWhitespace(code);
     }
 
     effects.enter(tagAttributeValueLiteralValueType);
-    return attributeValueQuoted(code);
+    return parseQuotedAttributeValue(code);
   };
 
   // Inside quoted attribute value
-  const attributeValueQuoted: State = function (code) {
+  const parseQuotedAttributeValue: State = function (code) {
     if (
       code === codes.eof ||
-      code === quoteMarker ||
+      code === currentQuoteMarker ||
       markdownLineEnding(code)
     ) {
       effects.exit(tagAttributeValueLiteralValueType);
-      return attributeValueQuotedStart(code);
+      return parseQuotedAttributeValueStart(code);
     }
 
     effects.consume(code);
-    return attributeValueQuoted;
+    return parseQuotedAttributeValue;
   };
 
   // After self-closing slash
-  const selfClosing: State = function (code) {
+  const parseSelfClosing: State = function (code) {
     if (code === findCode(pattern.end[pattern.end.length - 1])) {
-      return tagEnd(code);
+      return parseTagEnd(code);
     }
 
-    crash(
+    throwUnexpected(
       code,
       "after self-closing slash",
       "`>` to end the tag" +
@@ -700,7 +715,7 @@ export function factoryTag(
   };
 
   // At tag end (e.g., '>')
-  const tagEnd: State = function (code) {
+  const parseTagEnd: State = function (code) {
     effects.enter(tagMarkerType);
     effects.consume(code);
     effects.exit(tagMarkerType);
@@ -709,7 +724,7 @@ export function factoryTag(
   };
 
   // Optionally parse whitespace (including lazy lines)
-  const optionalEsWhitespace: State = function (code) {
+  const parseOptionalWhitespace: State = function (code) {
     if (markdownLineEnding(code)) {
       if (allowLazy) {
         effects.enter(types.lineEnding);
@@ -717,7 +732,7 @@ export function factoryTag(
         effects.exit(types.lineEnding);
         return factorySpace(
           effects,
-          optionalEsWhitespace,
+          parseOptionalWhitespace,
           types.linePrefix,
           constants.tabSize
         );
@@ -727,43 +742,43 @@ export function factoryTag(
         lazyLineEnd,
         factorySpace(
           effects,
-          optionalEsWhitespace,
+          parseOptionalWhitespace,
           types.linePrefix,
           constants.tabSize
         ),
-        crashEol
+        throwUnexpectedEol
       )(code);
     }
 
     if (markdownSpace(code) || unicodeWhitespace(code)) {
       effects.enter("esWhitespace");
-      return optionalEsWhitespaceContinue(code);
+      return parseOptionalWhitespaceContinue(code);
     }
 
-    return returnState(code);
+    return nextState(code);
   };
 
   // Continue optional whitespace
-  const optionalEsWhitespaceContinue: State = function (code) {
+  const parseOptionalWhitespaceContinue: State = function (code) {
     if (
       markdownLineEnding(code) ||
       !(markdownSpace(code) || unicodeWhitespace(code))
     ) {
       effects.exit("esWhitespace");
-      return optionalEsWhitespace(code);
+      return parseOptionalWhitespace(code);
     }
 
     effects.consume(code);
-    return optionalEsWhitespaceContinue;
+    return parseOptionalWhitespaceContinue;
   };
 
   /**
    * Crash on unexpected lazy line ending.
    */
-  function crashEol() {
+  function throwUnexpectedEol() {
     throw new VFileMessage(
       "Unexpected lazy line in container, expected line to be prefixed with `>` when in a block quote, whitespace when in a list, etc",
-      self.now(),
+      context.now(),
       "micromark-extension-mdx-jsx:unexpected-eof"
     );
   }
@@ -771,7 +786,7 @@ export function factoryTag(
   /**
    * Crash at a nonconforming character.
    */
-  function crash(code: Code, at: string, expect: string) {
+  function throwUnexpected(code: Code, at: string, expect: string) {
     throw new VFileMessage(
       "Unexpected " +
         (code === codes.eof
@@ -787,13 +802,13 @@ export function factoryTag(
         at +
         ", expected " +
         expect,
-      self.now(),
+      context.now(),
       "micromark-extension-mdx-jsx:unexpected-" +
         (code === codes.eof ? "eof" : "character")
     );
   }
 
-  return start;
+  return parseTagOpener;
 }
 
 /**
@@ -802,7 +817,7 @@ export function factoryTag(
 const tokenizeLazyLineEnd: Tokenizer = function (effects, ok, nok) {
   // eslint-disable-next-line
   // @ts-ignore
-  const self = this;
+  const context = this;
 
   const start: State = function (code) {
     assert(markdownLineEnding(code), "expected eol");
@@ -814,7 +829,7 @@ const tokenizeLazyLineEnd: Tokenizer = function (effects, ok, nok) {
 
   const lineStart: State = function (code) {
     // @ts-ignore
-    return self.parser.lazy[self.now().line] ? nok(code) : ok(code);
+    return context.parser.lazy[context.now().line] ? nok(code) : ok(code);
   };
 
   return start;

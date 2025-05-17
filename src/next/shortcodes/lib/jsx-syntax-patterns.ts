@@ -1,7 +1,7 @@
 import type { Acorn, AcornOptions } from "micromark-factory-mdx-expression";
 import type { Construct, Extension } from "micromark-util-types";
-import { jsxFlow } from "./jsx-block-parser";
-import { jsxText } from "./jsx-inline-parser";
+import { createJsxFlowConstruct } from "./jsx-block-parser";
+import { createJsxInlineConstruct } from "./jsx-inline-parser";
 import { findCode } from "./jsx-parser-utils";
 
 /**
@@ -72,7 +72,7 @@ export function mdxJsx(options: Options = {}): Extension {
       flowConstructs[firstCharCode] = existingFlow
         ? [
             ...existingFlow,
-            jsxFlow(
+            createJsxFlowConstruct(
               acornInstance,
               mergedAcornOptions,
               options.addResult,
@@ -80,7 +80,7 @@ export function mdxJsx(options: Options = {}): Extension {
             ),
           ]
         : [
-            jsxFlow(
+            createJsxFlowConstruct(
               acornInstance,
               mergedAcornOptions,
               options.addResult,
@@ -92,7 +92,7 @@ export function mdxJsx(options: Options = {}): Extension {
       textConstructs[firstCharCode] = existingText
         ? [
             ...existingText,
-            jsxText(
+            createJsxInlineConstruct(
               acornInstance,
               mergedAcornOptions,
               options.addResult,
@@ -100,7 +100,7 @@ export function mdxJsx(options: Options = {}): Extension {
             ),
           ]
         : [
-            jsxText(
+            createJsxInlineConstruct(
               acornInstance,
               mergedAcornOptions,
               options.addResult,
