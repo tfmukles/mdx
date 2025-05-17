@@ -5,7 +5,7 @@ import { types } from "micromark-util-symbol/types";
 import type { Construct, Tokenizer } from "micromark-util-types";
 import { DirectiveTokens, DirectiveTypes } from "./constants";
 import { factoryAttributes } from "./directive-attributes";
-import { factoryName } from "./directive-name";
+import { factoryDirectiveIdentifier } from "./directive-name";
 import type { DirectivePattern } from "./types";
 import { findCode, getPatternName } from "./utils";
 
@@ -15,23 +15,30 @@ type State = (code: number) => State;
  * Creates a micromark construct for parsing custom directive leaf nodes.
  * Handles parsing of the directive's opening sequence, name, attributes, and closing sequence.
  */
-export const directiveLeaf = (pattern: DirectivePattern): Construct => {
+export const createDirectiveLeafConstruct = (
+  pattern: DirectivePattern
+): Construct => {
   /**
    * Creates the state machine tokenizer for the directive leaf.
    */
-  const createTokenizer = (effects: any, ok: State, nok: State, self: any) => {
-    const states = {
+  const directiveLeafTokenizerFactory = (
+    effects: any,
+    ok: State,
+    nok: State,
+    context: any
+  ) => {
+    const stateHandlers = {
       /**
        * Start state: checks for the opening character of the directive.
        */
       start: (code: number): State => {
-        const firstCharacter = pattern.start[0];
-        if (findCode(firstCharacter) === code) {
+        const firstChar = pattern.start[0];
+        if (findCode(firstChar) === code) {
           effects.enter(DirectiveTypes.LEAF);
           effects.enter(DirectiveTokens.LEAF.FENCE);
           effects.enter(DirectiveTokens.LEAF.SEQUENCE);
           effects.consume(code);
-          return states.sequenceOpen;
+          return stateHandlers.sequenceOpen;
         }
         return nok;
       },
@@ -40,15 +47,15 @@ export const directiveLeaf = (pattern: DirectivePattern): Construct => {
        * Consumes the rest of the opening sequence if present.
        */
       sequenceOpen: (code: number): State => {
-        const nextCharacter = pattern.start[1];
-        if (!nextCharacter) {
+        const nextChar = pattern.start[1];
+        if (!nextChar) {
           effects.exit(DirectiveTokens.LEAF.SEQUENCE);
-          return states.factorName;
+          return stateHandlers.parseName;
         }
 
-        if (findCode(nextCharacter) === code) {
+        if (findCode(nextChar) === code) {
           effects.consume(code);
-          return states.sequenceOpen;
+          return stateHandlers.sequenceOpen;
         }
 
         return nok;
@@ -57,19 +64,19 @@ export const directiveLeaf = (pattern: DirectivePattern): Construct => {
       /**
        * Parses the directive name.
        */
-      factorName: (code: number): State => {
+      parseName: (code: number): State => {
         if (markdownSpace(code)) {
           const next = factorySpace(
             effects,
-            states.factorName,
+            stateHandlers.parseName,
             types.whitespace
           );
           return next as State;
         }
-        const next = factoryName.call(
-          self,
+        const next = factoryDirectiveIdentifier.call(
+          context,
           effects,
-          states.afterName,
+          stateHandlers.afterName,
           nok,
           DirectiveTokens.LEAF.NAME,
           getPatternName(pattern.name, pattern.templateName)
@@ -84,7 +91,7 @@ export const directiveLeaf = (pattern: DirectivePattern): Construct => {
         if (markdownSpace(code)) {
           const next = factorySpace(
             effects,
-            states.afterName,
+            stateHandlers.afterName,
             types.whitespace
           );
           return next as State;
@@ -92,21 +99,21 @@ export const directiveLeaf = (pattern: DirectivePattern): Construct => {
         if (markdownLineEnding(code)) {
           return nok;
         }
-        return states.startAttributes;
+        return stateHandlers.startAttributes;
       },
 
       /**
        * Attempts to parse attributes or moves to the closing sequence.
        */
       startAttributes: (code: number): State => {
-        const nextCharacter = pattern.end[0];
-        if (findCode(nextCharacter) === code) {
-          return states.afterAttributes(code);
+        const endChar = pattern.end[0];
+        if (findCode(endChar) === code) {
+          return stateHandlers.afterAttributes(code);
         }
         return effects.attempt(
-          attributes,
-          states.afterAttributes,
-          states.afterAttributes
+          attributeConstruct,
+          stateHandlers.afterAttributes,
+          stateHandlers.afterAttributes
         )(code);
       },
 
@@ -114,13 +121,13 @@ export const directiveLeaf = (pattern: DirectivePattern): Construct => {
        * Handles the closing sequence of the directive.
        */
       afterAttributes: (code: number): State => {
-        const nextCharacter = pattern.end[0];
+        const endChar = pattern.end[0];
         if (code === codes.eof) {
           return nok;
         }
-        if (findCode(nextCharacter) === code) {
+        if (findCode(endChar) === code) {
           effects.consume(code);
-          return states.end;
+          return stateHandlers.end;
         }
         return nok;
       },
@@ -135,23 +142,27 @@ export const directiveLeaf = (pattern: DirectivePattern): Construct => {
       },
     };
 
-    return states.start;
+    return stateHandlers.start;
   };
 
   /**
    * Tokenizer for the directive leaf construct.
    */
-  const tokenizeDirectiveLeaf: Tokenizer = function (effects, ook, nnok) {
-    const self = this;
-    const ok = (code: number): State => ook as unknown as State;
-    const nok = (code: number): State => nnok as unknown as State;
-    return createTokenizer(effects, ok, nok, self);
+  const directiveLeafTokenizer: Tokenizer = function (
+    effects,
+    okCallback,
+    nokCallback
+  ) {
+    const context = this;
+    const ok = (code: number): State => okCallback as unknown as State;
+    const nok = (code: number): State => nokCallback as unknown as State;
+    return directiveLeafTokenizerFactory(effects, ok, nok, context);
   };
 
   /**
    * Tokenizer for parsing directive attributes.
    */
-  const tokenizeAttributes: Tokenizer = function (effects, ok, nok) {
+  const directiveAttributesTokenizer: Tokenizer = function (effects, ok, nok) {
     return factoryAttributes(
       effects,
       ok,
@@ -172,10 +183,13 @@ export const directiveLeaf = (pattern: DirectivePattern): Construct => {
   };
 
   // Attribute parsing construct
-  const attributes = { tokenize: tokenizeAttributes, partial: true };
+  const attributeConstruct = {
+    tokenize: directiveAttributesTokenizer,
+    partial: true,
+  };
 
   // Return the micromark construct
   return {
-    tokenize: tokenizeDirectiveLeaf,
+    tokenize: directiveLeafTokenizer,
   };
 };

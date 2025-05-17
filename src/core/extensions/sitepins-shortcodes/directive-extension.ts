@@ -5,8 +5,8 @@
  */
 
 import type { Extension } from "micromark-util-types";
-import { directiveContainer } from "./directive-container";
-import { directiveLeaf } from "./directive-leaf";
+import { createDirectiveContainer } from "./directive-container";
+import { createDirectiveLeafConstruct } from "./directive-leaf";
 import type {
   DirectiveOptions,
   DirectivePattern,
@@ -20,9 +20,9 @@ import { findCode } from "./utils";
 function getDirectiveForPattern(pattern: DirectivePattern) {
   switch (pattern.type) {
     case "leaf":
-      return directiveLeaf(pattern);
+      return createDirectiveLeafConstruct(pattern);
     case "block":
-      return directiveContainer(pattern);
+      return createDirectiveContainer(pattern);
     default:
       return null;
   }
