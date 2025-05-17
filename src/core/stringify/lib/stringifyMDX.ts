@@ -4,7 +4,7 @@ import { gfmToMarkdown } from "mdast-util-gfm";
 import { mdxJsxToMarkdown } from "mdast-util-mdx-jsx";
 import { Handlers, toMarkdown } from "mdast-util-to-markdown";
 import { text } from "mdast-util-to-markdown/lib/handle/text";
-import { stringifyMDX as stringifyMDXNext } from "../../../next";
+import { stringifyMDX as stringifyMDXLegacy } from "../../../next";
 import { directiveToMarkdown } from "../../extensions/sitepins-shortcodes/directive-to-markdown";
 import type * as Plate from "../../parser/types/plateTypes";
 import { Pattern } from "../types";
@@ -16,68 +16,71 @@ import { rootElement } from "./elements";
  * Handles both markdown and MDX modes, applies template shortcodes,
  * and processes invalid markdown nodes.
  */
-export const stringifyMDX = (
-  value: Plate.RootElement,
-  field: RichTextField,
-  imageCallback: (url: string) => string
+export const serializePlateToMDX = (
+  root: Plate.RootElement,
+  richTextField: RichTextField,
+  imageUrlMapper: (url: string) => string
 ) => {
-  // If markdown mode, delegate to next implementation
-  if (field.parser?.type === "markdown") {
-    return stringifyMDXNext(value, field, imageCallback);
+  // If markdown mode, delegate to legacy implementation
+  if (richTextField.parser?.type === "markdown") {
+    return stringifyMDXLegacy(root, richTextField, imageUrlMapper);
   }
-  if (!value) {
+  if (!root) {
     return;
   }
-  if (typeof value === "string") {
+  if (typeof root === "string") {
     throw new Error("Expected an object to stringify, but received a string");
   }
   // Handle invalid markdown nodes
-  if (value?.children[0]) {
-    if (value?.children[0].type === "invalid_markdown") {
-      return value.children[0].value;
+  if (root?.children[0]) {
+    if (root?.children[0].type === "invalid_markdown") {
+      return root.children[0].value;
     }
   }
   // Convert Plate AST to MDAST
-  const tree = rootElement(value, field, imageCallback);
+  const mdastTree = rootElement(root, richTextField, imageUrlMapper);
   // Convert MDAST to markdown string
-  const res = toSitepinsMarkdown(tree, field);
+  const markdownString = mdastToSitepinsMarkdown(mdastTree, richTextField);
   // Apply template shortcodes if any
-  const templatesWithMatchers = field.templates?.filter(
+  const templatesWithPatterns = richTextField.templates?.filter(
     (template) => template.match
   );
-  let preprocessedString = res;
-  templatesWithMatchers?.forEach((template) => {
+  let processedString = markdownString;
+  templatesWithPatterns?.forEach((template) => {
     if (typeof template === "string") {
       throw new Error("Global templates are not supported");
     }
     if (template.match) {
-      preprocessedString = stringifyShortcode(preprocessedString, template);
+      processedString = stringifyShortcode(processedString, template);
     }
   });
-  return preprocessedString;
+  return processedString;
 };
 
 /**
  * Converts an MDAST tree to a markdown string using custom handlers and extensions.
  * Handles directive patterns, GFM, and MDX JSX.
  */
-export const toSitepinsMarkdown = (tree: Md.Root, field: RichTextType) => {
+export const mdastToSitepinsMarkdown = (
+  mdast: Md.Root,
+  richTextType: RichTextType
+) => {
   // Collect directive patterns from templates
-  const patterns: Pattern[] = [];
-  field.templates?.forEach((template) => {
+  const directivePatterns: Pattern[] = [];
+  richTextType.templates?.forEach((template) => {
     if (typeof template === "string") {
       return;
     }
     if (template && template.match) {
       const pattern = template.match as Pattern;
       pattern.templateName = template.name;
-      patterns.push(pattern);
+      directivePatterns.push(pattern);
     }
   });
 
   // Custom handlers for markdown serialization
-  const handlers: Partial<Handlers> = {};
-  handlers["text"] = (node, parent, context, safeOptions) => {
+  const customHandlers: Partial<Handlers> = {};
+  customHandlers["text"] = (node, parent, context, safeOptions) => {
     // Remove unsafe space escaping in phrasing context
     context.unsafe = context.unsafe.filter((unsafeItem) => {
       if (
@@ -89,11 +92,11 @@ export const toSitepinsMarkdown = (tree: Md.Root, field: RichTextType) => {
       return true;
     });
     // Handle skipEscaping options for markdown parser
-    if (field.parser?.type === "markdown") {
-      if (field.parser.skipEscaping === "all") {
+    if (richTextType.parser?.type === "markdown") {
+      if (richTextType.parser.skipEscaping === "all") {
         return node.value;
       }
-      if (field.parser.skipEscaping === "html") {
+      if (richTextType.parser.skipEscaping === "html") {
         context.unsafe = context.unsafe.filter((unsafeItem) => {
           if (unsafeItem.character === "<") {
             return false;
@@ -106,13 +109,13 @@ export const toSitepinsMarkdown = (tree: Md.Root, field: RichTextType) => {
   };
 
   // Serialize MDAST to markdown with extensions
-  return toMarkdown(tree, {
+  return toMarkdown(mdast, {
     extensions: [
-      directiveToMarkdown(patterns),
+      directiveToMarkdown(directivePatterns),
       mdxJsxToMarkdown(),
       gfmToMarkdown(),
     ],
     listItemIndent: "one",
-    handlers,
+    handlers: customHandlers,
   });
 };

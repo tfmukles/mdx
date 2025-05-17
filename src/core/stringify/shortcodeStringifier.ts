@@ -1,61 +1,61 @@
 import { RichTextTemplate } from "@/types";
 import { replaceAll } from "../parser";
 
-interface ShortcodeConfig {
+interface ShortcodePatternConfig {
   template: RichTextTemplate;
-  hasUnkeyedAttributes: boolean;
-  hasChildren: boolean;
+  hasUnkeyedAttr: boolean;
+  hasChildrenField: boolean;
 }
 
-function buildRegexPattern(
+function createShortcodeRegex(
   templateName: string,
-  hasUnkeyedAttributes: boolean
+  hasUnkeyedAttr: boolean
 ): string {
-  const attributePattern = hasUnkeyedAttributes
-    ? "(?:_value=(.*?))?"
-    : "(.+?)?";
+  const attrPattern = hasUnkeyedAttr ? "(?:_value=(.*?))?" : "(.+?)?";
 
-  return `<[\\s]*${templateName}[\\s]*${attributePattern}[\\s]*>[\\s]*((?:.|\n)*?)[\\s]*<\/[\\s]*${templateName}[\\s]*>`;
+  return `<[\\s]*${templateName}[\\s]*${attrPattern}[\\s]*>[\\s]*((?:.|\n)*?)[\\s]*<\/[\\s]*${templateName}[\\s]*>`;
 }
 
 /**
- * Builds a replacement pattern string for a shortcode based on the provided configuration.
+ * Builds a replacement string for a shortcode based on the provided configuration.
  *
  * The pattern is constructed using the shortcode's start and end delimiters, its name,
  * and optionally includes a closing pattern if the shortcode supports children.
  *
  * @param config - The configuration object for the shortcode, containing template details
  *                 and a flag indicating if the shortcode can have children.
- * @returns The constructed replacement pattern string for the shortcode.
+ * @returns The constructed replacement string for the shortcode.
  */
-function buildReplacementPattern(config: ShortcodeConfig): string {
+function createShortcodeReplacement(config: ShortcodePatternConfig): string {
   const { template } = config;
-  const matchName = template.match?.name || template.name;
-  const matchStart = template.match!.start;
-  const matchEnd = template.match!.end;
+  const shortcodeName = template.match?.name || template.name;
+  const shortcodeStart = template.match!.start;
+  const shortcodeEnd = template.match!.end;
 
-  const basePattern = `${matchStart} ${matchName} $1 ${matchEnd}`;
+  const openPattern = `${shortcodeStart} ${shortcodeName} $1 ${shortcodeEnd}`;
 
-  if (!config.hasChildren) {
-    return basePattern;
+  if (!config.hasChildrenField) {
+    return openPattern;
   }
 
-  const closingPattern = `\n$2\n${matchStart} /${matchName} ${matchEnd}`;
-  return basePattern + closingPattern;
+  const closePattern = `\n$2\n${shortcodeStart} /${shortcodeName} ${shortcodeEnd}`;
+  return openPattern + closePattern;
 }
 
-function getShortcodeConfig(template: RichTextTemplate): ShortcodeConfig {
+function getShortcodePatternConfig(
+  template: RichTextTemplate
+): ShortcodePatternConfig {
   return {
     template,
-    hasUnkeyedAttributes: template.fields.some(
-      (field) => field.name === "_value"
+    hasUnkeyedAttr: template.fields.some((field) => field.name === "_value"),
+    hasChildrenField: template.fields.some(
+      (field) => field.name === "children"
     ),
-    hasChildren: template.fields.some((field) => field.name === "children"),
   };
 }
 
 export function stringifyShortcode(
-  preprocessedString: string,
+  input: string,
   template: RichTextTemplate
 ): string {
   if (!template.match) {
@@ -64,9 +64,9 @@ export function stringifyShortcode(
     );
   }
 
-  const config = getShortcodeConfig(template);
-  const regex = buildRegexPattern(template.name, config.hasUnkeyedAttributes);
-  const replacement = buildReplacementPattern(config);
+  const config = getShortcodePatternConfig(template);
+  const regex = createShortcodeRegex(template.name, config.hasUnkeyedAttr);
+  const replacement = createShortcodeReplacement(config);
 
-  return replaceAll(preprocessedString, regex, replacement);
+  return replaceAll(input, regex, replacement);
 }

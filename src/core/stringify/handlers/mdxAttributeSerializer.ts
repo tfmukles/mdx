@@ -1,7 +1,7 @@
 import { RichTextType } from "@/types";
 import type * as Md from "mdast";
 import { MdxJsxFlowElement, MdxJsxTextElement } from "../types";
-import { eat } from "./markdownMarksHandler";
+import { processInlineNodes } from "./markdownMarksHandler";
 
 // Interface for a standard MDX JSX attribute (string, boolean, number, or null)
 interface MdxJsxAttribute {
@@ -69,7 +69,11 @@ export function serializeMdxJsxFlowElement(
           value: childNode,
         });
       } else {
-        const phrasingContent = eat([childNode], richTextField, imageUrlMapper);
+        const phrasingContent = processInlineNodes(
+          [childNode],
+          richTextField,
+          imageUrlMapper
+        );
         mdxChildren.push(...phrasingContent);
       }
     });
@@ -128,7 +132,11 @@ export function serializeMdxJsxTextElement(
           value: childNode,
         });
       } else {
-        const phrasingContent = eat([childNode], richTextField, imageUrlMapper);
+        const phrasingContent = processInlineNodes(
+          [childNode],
+          richTextField,
+          imageUrlMapper
+        );
         mdxChildren.push(...(phrasingContent as Md.PhrasingContent[]));
       }
     });

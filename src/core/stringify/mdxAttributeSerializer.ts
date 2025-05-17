@@ -13,23 +13,28 @@ import * as Plate from "../parser/types/plateTypes";
  * Serializes the props and children of an MdxJsxTextElement into MDX attribute values and phrasing content.
  * Handles primitive, null, and object props, and recursively stringifies children using `eat`.
  */
-export const stringifyPropsInline = (
-  element: Plate.MdxInlineElement,
-  field: RichTextField,
-  imageCallback: (url: string) => string
+export const serializeInlineProps = (
+  inlineElement: Plate.MdxInlineElement,
+  parentRichTextField: RichTextField,
+  imageUrlMapper: (url: string) => string
 ): { attributes: MdxJsxAttribute[]; children: Md.PhrasingContent[] } => {
-  return stringifyProps(element, field, true, imageCallback);
+  return serializeProps(
+    inlineElement,
+    parentRichTextField,
+    true,
+    imageUrlMapper
+  );
 };
 
 /**
  * Serializes the props and children of an MdxJsxFlowElement or MdxJsxTextElement into MDX attribute values and MDAST children.
  * Handles primitive, null, and object props, and recursively stringifies children using `eat`.
  */
-export function stringifyProps(
+export function serializeProps(
   element: Plate.MdxInlineElement,
   parentField: RichTextField,
   flatten: boolean,
-  imageCallback: (url: string) => string
+  imageUrlMapper: (url: string) => string
 ): {
   attributes: MdxJsxAttribute[];
   children: Md.PhrasingContent[];
@@ -37,11 +42,11 @@ export function stringifyProps(
   directiveType: string;
 };
 
-export function stringifyProps(
+export function serializeProps(
   element: Plate.MdxBlockElement,
   parentField: RichTextField,
   flatten: boolean,
-  imageCallback: (url: string) => string
+  imageUrlMapper: (url: string) => string
 ): {
   attributes: MdxJsxAttribute[];
   children: Md.BlockContent[];
@@ -54,11 +59,11 @@ export function stringifyProps(
  * Determines the correct template, processes each prop according to its field type,
  * and handles nested rich-text and object fields.
  */
-export function stringifyProps(
+export function serializeProps(
   element: Plate.MdxBlockElement | Plate.MdxInlineElement,
   parentField: RichTextField,
   flatten: boolean,
-  imageCallback: (url: string) => string
+  imageUrlMapper: (url: string) => string
 ): {
   attributes: MdxJsxAttribute[];
   children: Md.BlockContent[] | Md.PhrasingContent[];
@@ -67,103 +72,105 @@ export function stringifyProps(
 } {
   const attributes: MdxJsxAttribute[] = [];
   const children: Md.Content[] = [];
-  let template: RichTextTemplate | undefined;
+  let matchedTemplate: RichTextTemplate | undefined;
   let useDirective = false;
   let directiveType = "leaf";
   // Find the template for the element by name or match pattern
-  template = parentField.templates?.find((template) => {
-    if (typeof template === "string") {
+  matchedTemplate = parentField.templates?.find((tpl) => {
+    if (typeof tpl === "string") {
       throw new Error("Global templates not supported");
     }
-    return template.name === element.name;
+    return tpl.name === element.name;
   });
-  if (!template) {
-    template = parentField.templates?.find((template) => {
-      const templateName = template?.match?.name;
+  if (!matchedTemplate) {
+    matchedTemplate = parentField.templates?.find((tpl) => {
+      const templateName = tpl?.match?.name;
       return templateName === element.name;
     });
   }
-  if (!template || typeof template === "string") {
+  if (!matchedTemplate || typeof matchedTemplate === "string") {
     throw new Error(`Unable to find template for JSX element ${element.name}`);
   }
   // If the template has a "children" field, treat as block directive
-  if (template.fields.find((f) => f.name === "children")) {
+  if (matchedTemplate.fields.find((f) => f.name === "children")) {
     directiveType = "block";
   }
-  useDirective = !!template.match;
+  useDirective = !!matchedTemplate.match;
   // Process each prop according to its field type
-  Object.entries(element.props).forEach(([name, value]) => {
-    if (typeof template === "string") {
-      throw new Error(`Unable to find template for JSX element ${name}`);
+  Object.entries(element.props).forEach(([propName, propValue]) => {
+    if (typeof matchedTemplate === "string") {
+      throw new Error(`Unable to find template for JSX element ${propName}`);
     }
-    const field = template?.fields?.find((field) => field.name === name);
-    if (!field) {
-      if (name === "children") {
+    const propField = matchedTemplate?.fields?.find(
+      (fld) => fld.name === propName
+    );
+    if (!propField) {
+      if (propName === "children") {
         return;
       }
       return;
-      // throw new Error(`No field definition found for property ${name}`)
+      // throw new Error(`No field definition found for property ${propName}`)
     }
-    switch (field.type) {
+    switch (propField.type) {
       case "reference":
-        if (field.list) {
-          if (Array.isArray(value)) {
+        if (propField.list) {
+          if (Array.isArray(propValue)) {
             attributes.push({
               type: "mdxJsxAttribute",
-              name,
+              name: propName,
               value: {
                 type: "mdxJsxAttributeValueExpression",
-                value: `[${value.map((item) => `"${item}"`).join(", ")}]`,
+                value: `[${propValue.map((item) => `"${item}"`).join(", ")}]`,
               },
             });
           }
         } else {
-          if (typeof value === "string") {
+          if (typeof propValue === "string") {
             attributes.push({
               type: "mdxJsxAttribute",
-              name,
-              value: value,
+              name: propName,
+              value: propValue,
             });
           }
         }
         break;
       case "datetime":
       case "string":
-        if (field.list) {
-          if (Array.isArray(value)) {
+        if (propField.list) {
+          if (Array.isArray(propValue)) {
             attributes.push({
               type: "mdxJsxAttribute",
-              name,
+              name: propName,
               value: {
                 type: "mdxJsxAttributeValueExpression",
-                value: `[${value.map((item) => `"${item}"`).join(", ")}]`,
+                value: `[${propValue.map((item) => `"${item}"`).join(", ")}]`,
               },
             });
           }
         } else {
-          if (typeof value === "string") {
+          if (typeof propValue === "string") {
             attributes.push({
               type: "mdxJsxAttribute",
-              name,
-              value: value,
+              name: propName,
+              value: propValue,
             });
           } else {
             throw new Error(
-              `Expected string for attribute on field ${field.name}`
+              `Expected string for attribute on field ${propField.name}`
             );
           }
         }
         break;
       case "image":
-        if (field.list) {
-          if (Array.isArray(value)) {
+        if (propField.list) {
+          if (Array.isArray(propValue)) {
             attributes.push({
               type: "mdxJsxAttribute",
-              name,
+              name: propName,
               value: {
                 type: "mdxJsxAttributeValueExpression",
-                value: `[${value
-                  .map((item) => `"${imageCallback(item)}"`)
+                value: `[${propValue
+                  .map((item) => `"${imageUrlMapper(item)}"`)
                   .join(", ")}]`,
               },
             });
@@ -171,85 +178,89 @@ export function stringifyProps(
         } else {
           attributes.push({
             type: "mdxJsxAttribute",
-            name,
-            value: imageCallback(String(value)),
+            name: propName,
+            value: imageUrlMapper(String(propValue)),
           });
         }
         break;
       case "number":
       case "boolean":
-        if (field.list) {
-          if (Array.isArray(value)) {
+        if (propField.list) {
+          if (Array.isArray(propValue)) {
             attributes.push({
               type: "mdxJsxAttribute",
-              name,
+              name: propName,
               value: {
                 type: "mdxJsxAttributeValueExpression",
-                value: `[${value.map((item) => `${item}`).join(", ")}]`,
+                value: `[${propValue.map((item) => `${item}`).join(", ")}]`,
               },
             });
           }
         } else {
           attributes.push({
             type: "mdxJsxAttribute",
-            name,
+            name: propName,
             value: {
               type: "mdxJsxAttributeValueExpression",
-              value: String(value),
+              value: String(propValue),
             },
           });
         }
         break;
       case "object":
         // Recursively transform nested rich-text fields in objects
-        const result = findAndTransformNestedRichText(
-          field,
-          value,
-          imageCallback
+        const transformedObj = transformNestedRichTextFields(
+          propField,
+          propValue,
+          imageUrlMapper
         );
         attributes.push({
           type: "mdxJsxAttribute",
-          name,
+          name: propName,
           value: {
             type: "mdxJsxAttributeValueExpression",
-            value: stringifyObj(result, flatten),
+            value: formatObjectAsString(transformedObj, flatten),
           },
         });
         break;
       case "rich-text":
-        if (typeof value === "string") {
+        if (typeof propValue === "string") {
           throw new Error(
             `Unexpected string for rich-text, ensure the value has been properly parsed`
           );
         }
 
-        if (field.list) {
+        if (propField.list) {
           throw new Error(`Rich-text list is not supported`);
         } else {
           const joiner = flatten ? " " : "\n";
           let val = "";
           // The rich-text editor can sometimes pass an empty value {}, consider that nullable
           if (
-            isPlainObject(value) &&
-            Object.keys(value as object).length === 0
+            isPlainObject(propValue) &&
+            Object.keys(propValue as object).length === 0
           ) {
             return;
           }
           assertShape<Plate.RootElement>(
-            value,
-            (value) => value.type === "root" && Array.isArray(value.children),
-            `Nested rich-text element is not a valid shape for field ${field.name}`
+            propValue,
+            (v) => v.type === "root" && Array.isArray(v.children),
+            `Nested rich-text element is not a valid shape for field ${propField.name}`
           );
-          if (field.name === "children") {
+          if (propField.name === "children") {
             // If the field is "children", push its children to the output children array
-            const root = rootElement(value, field, imageCallback);
+            const root = rootElement(propValue, propField, imageUrlMapper);
             root.children.forEach((child) => {
               children.push(child);
             });
             return;
           } else {
             // Otherwise, stringify the rich-text value as MDX
-            const stringValue = stringifyMDX(value, field, imageCallback);
+            const stringValue = stringifyMDX(
+              propValue,
+              propField,
+              imageUrlMapper
+            );
             if (stringValue) {
               val = stringValue
                 .trim()
@@ -261,7 +272,7 @@ export function stringifyProps(
           if (flatten) {
             attributes.push({
               type: "mdxJsxAttribute",
-              name,
+              name: propName,
               value: {
                 type: "mdxJsxAttributeValueExpression",
                 value: `<>${val.trim()}</>`,
@@ -270,7 +281,7 @@ export function stringifyProps(
           } else {
             attributes.push({
               type: "mdxJsxAttribute",
-              name,
+              name: propName,
               value: {
                 type: "mdxJsxAttributeValueExpression",
                 value: `<>\n${val}\n</>`,
@@ -280,10 +291,10 @@ export function stringifyProps(
         }
         break;
       default:
-        throw new Error(`Stringify props: ${field.type} not yet supported`);
+        throw new Error(`serializeProps: ${propField.type} not yet supported`);
     }
   });
-  if (template.match) {
+  if (matchedTemplate.match) {
     // Consistent mdx element rendering regardless of children makes it easier to parse
     return {
       useDirective,
@@ -312,7 +323,7 @@ export function stringifyProps(
 /**
  * Use prettier to determine how to format potentially large objects as strings
  */
-function stringifyObj(obj: unknown, flatten: boolean) {
+function formatObjectAsString(obj: unknown, flatten: boolean) {
   if (typeof obj === "object" && obj !== null) {
     const dummyFunc = `const dummyFunc = `;
     const res = prettier
@@ -327,7 +338,7 @@ function stringifyObj(obj: unknown, flatten: boolean) {
     return flatten ? res.replaceAll("\n", "").replaceAll("  ", " ") : res;
   } else {
     throw new Error(
-      `stringifyObj must be passed an object or an array of objects, received ${typeof obj}`
+      `formatObjectAsString must be passed an object or an array of objects, received ${typeof obj}`
     );
   }
 }
@@ -358,20 +369,20 @@ function isPlainObject(value: unknown) {
  * simplicity, and the assumption here is that this is ok because the object
  * is not long-lived.
  */
-const findAndTransformNestedRichText = (
+const transformNestedRichTextFields = (
   field: Field,
   value: unknown,
-  imageCallback: (url: string) => string,
+  imageUrlMapper: (url: string) => string,
   parentValue: Record<string, unknown> = {}
 ) => {
   switch (field.type) {
     case "rich-text": {
       assertShape<Plate.RootElement>(
         value,
-        (value) => value.type === "root" && Array.isArray(value.children),
+        (v) => v.type === "root" && Array.isArray(v.children),
         `Nested rich-text element is not a valid shape for field ${field.name}`
       );
-      parentValue[field.name] = stringifyMDX(value, field, imageCallback);
+      parentValue[field.name] = stringifyMDX(value, field, imageUrlMapper);
       break;
     }
     case "object": {
@@ -384,10 +395,10 @@ const findAndTransformNestedRichText = (
                   ({ name }: { name: string }) => name === key
                 );
                 if (subField) {
-                  findAndTransformNestedRichText(
+                  transformNestedRichTextFields(
                     subField,
                     subValue,
-                    imageCallback,
+                    imageUrlMapper,
                     item
                   );
                 }
@@ -403,10 +414,10 @@ const findAndTransformNestedRichText = (
                 ({ name }: { name: string }) => name === key
               );
               if (subField) {
-                findAndTransformNestedRichText(
+                transformNestedRichTextFields(
                   subField,
                   subValue,
-                  imageCallback,
+                  imageUrlMapper,
                   value
                 );
               }

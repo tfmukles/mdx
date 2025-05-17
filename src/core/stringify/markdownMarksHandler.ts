@@ -1,26 +1,28 @@
+// Renamed function and variables for clarity and consistency
+
 import type { RichTextType } from "@/types";
 import type * as Md from "mdast";
 import type * as Plate from "../parser/types/plateTypes";
-import { stringifyPropsInline } from "./mdxAttributeSerializer";
+import { serializeInlineProps } from "./mdxAttributeSerializer";
 
-export type MarkType = "strong" | "emphasis" | "inlineCode" | "delete";
-export type MarkCounts = Partial<Record<MarkType, number>>;
+export type MarkKind = "strong" | "emphasis" | "inlineCode" | "delete";
+export type MarkCountMap = Partial<Record<MarkKind, number>>;
 
-interface BaseInlineElement {
+interface BaseInlineNode {
   type?: string;
   text?: string;
   linkifyTextNode?: (arg: Md.Text) => Md.Link;
   children?: Plate.InlineElement[];
 }
 
-interface LinkElement extends BaseInlineElement {
+interface LinkNode extends BaseInlineNode {
   type: "a";
   url: string;
   title?: string | null;
   children: Plate.InlineElement[];
 }
 
-interface ImageElement extends BaseInlineElement {
+interface ImageNode extends BaseInlineNode {
   type: "img";
   url: string;
   alt?: string;
@@ -28,20 +30,20 @@ interface ImageElement extends BaseInlineElement {
   children: [Plate.EmptyTextElement];
 }
 
-interface MdxElement extends BaseInlineElement {
+interface MdxNode extends BaseInlineNode {
   type: "mdxJsxTextElement";
   name: string | null;
   props: Record<string, unknown>;
   children: [Plate.EmptyTextElement];
 }
 
-interface HtmlElement extends BaseInlineElement {
+interface HtmlNode extends BaseInlineNode {
   type: "html_inline";
   value: string;
   children: [Plate.EmptyTextElement];
 }
 
-interface TextElement extends BaseInlineElement {
+interface TextNode extends BaseInlineNode {
   type: "text";
   text: string;
   bold?: boolean;
@@ -50,47 +52,47 @@ interface TextElement extends BaseInlineElement {
   strikethrough?: boolean;
 }
 
-interface BreakElement extends BaseInlineElement {
+interface BreakNode extends BaseInlineNode {
   type: "break";
   children: [Plate.EmptyTextElement];
 }
 
-type InlineElementWithCallback =
-  | LinkElement
-  | ImageElement
-  | MdxElement
-  | HtmlElement
-  | TextElement
-  | BreakElement;
+type InlineNodeWithCallback =
+  | LinkNode
+  | ImageNode
+  | MdxNode
+  | HtmlNode
+  | TextNode
+  | BreakNode;
 
-interface TextContent {
+interface TextContentValue {
   text: string;
 }
 
-const matches = (a: string[], b: string[]): boolean => {
+const arrayMatches = (a: string[], b: string[]): boolean => {
   return a.some((v) => b.includes(v));
 };
 
-function createTextNode(content: TextContent): Md.Text {
+function createMdTextNode(content: TextContentValue): Md.Text {
   return {
     type: "text",
     value: content.text,
   };
 }
 
-function isLinkElement(node: InlineElementWithCallback): node is LinkElement {
+function isLinkNode(node: InlineNodeWithCallback): node is LinkNode {
   return node.type === "a" && "url" in node && typeof node.url === "string";
 }
 
-function isImageElement(node: InlineElementWithCallback): node is ImageElement {
+function isImageNode(node: InlineNodeWithCallback): node is ImageNode {
   return node.type === "img" && "url" in node && typeof node.url === "string";
 }
 
-function isMdxElement(node: InlineElementWithCallback): node is MdxElement {
+function isMdxNode(node: InlineNodeWithCallback): node is MdxNode {
   return node.type === "mdxJsxTextElement" && "name" in node && "props" in node;
 }
 
-function isHtmlElement(node: InlineElementWithCallback): node is HtmlElement {
+function isHtmlNode(node: InlineNodeWithCallback): node is HtmlNode {
   return (
     node.type === "html_inline" &&
     "value" in node &&
@@ -98,45 +100,45 @@ function isHtmlElement(node: InlineElementWithCallback): node is HtmlElement {
   );
 }
 
-function isTextElement(node: InlineElementWithCallback): node is TextElement {
+function isTextNode(node: InlineNodeWithCallback): node is TextNode {
   return (!node.type || node.type === "text") && typeof node.text === "string";
 }
 
-function processLinkNode(
-  node: LinkElement,
+function handleLinkNode(
+  node: LinkNode,
   field: RichTextType,
-  imageCallback: (url: string) => string
+  imageUrlMapper: (url: string) => string
 ): Md.Link {
   return {
     type: "link",
     url: node.url,
     title: node.title,
-    children: eat(
-      node.children as InlineElementWithCallback[],
+    children: processInlineNodes(
+      node.children as InlineNodeWithCallback[],
       field,
-      imageCallback
+      imageUrlMapper
     ) as Md.StaticPhrasingContent[],
   };
 }
 
-function processImageNode(
-  node: ImageElement,
-  imageCallback: (url: string) => string
+function handleImageNode(
+  node: ImageNode,
+  imageUrlMapper: (url: string) => string
 ): Md.Image {
   return {
     type: "image",
-    url: imageCallback(node.url),
+    url: imageUrlMapper(node.url),
     alt: node.alt,
     title: node.caption,
   };
 }
 
-function processMdxJsxTextElement(
-  node: MdxElement,
+function handleMdxJsxTextNode(
+  node: MdxNode,
   field: RichTextType,
-  imageCallback: (url: string) => string
+  imageUrlMapper: (url: string) => string
 ): Md.PhrasingContent {
-  const { attributes, children } = stringifyPropsInline(
+  const { attributes, children } = serializeInlineProps(
     {
       type: "mdxJsxTextElement",
       name: node.name,
@@ -144,7 +146,7 @@ function processMdxJsxTextElement(
       children: node.children,
     },
     field,
-    imageCallback
+    imageUrlMapper
   );
   return {
     type: "mdxJsxTextElement",
@@ -154,58 +156,56 @@ function processMdxJsxTextElement(
   } as Md.PhrasingContent;
 }
 
-function processInlineHtml(node: HtmlElement): Md.HTML {
+function handleInlineHtmlNode(node: HtmlNode): Md.HTML {
   return {
     type: "html",
     value: node.value,
   };
 }
 
-function processInlineElement(
-  content: InlineElementWithCallback,
+function handleInlineNode(
+  node: InlineNodeWithCallback,
   field: RichTextType,
-  imageCallback: (url: string) => string
+  imageUrlMapper: (url: string) => string
 ): Md.PhrasingContent {
-  if (isLinkElement(content)) {
+  if (isLinkNode(node)) {
     throw new Error(
       'Unexpected node of type "a", link elements should be processed after all inline elements have resolved'
     );
   }
 
-  if (isImageElement(content)) {
-    return processImageNode(content, imageCallback);
+  if (isImageNode(node)) {
+    return handleImageNode(node, imageUrlMapper);
   }
 
-  if (content.type === "break") {
+  if (node.type === "break") {
     return { type: "break" };
   }
 
-  if (isMdxElement(content)) {
-    return processMdxJsxTextElement(content, field, imageCallback);
+  if (isMdxNode(node)) {
+    return handleMdxJsxTextNode(node, field, imageUrlMapper);
   }
 
-  if (isHtmlElement(content)) {
-    return processInlineHtml(content);
+  if (isHtmlNode(node)) {
+    return handleInlineHtmlNode(node);
   }
 
-  if (isTextElement(content)) {
-    return createTextNode({ text: content.text });
+  if (isTextNode(node)) {
+    return createMdTextNode({ text: node.text });
   }
 
-  // At this point, content should be never type
-  // This is a type guard to ensure we've handled all cases
   const exhaustiveCheck = (x: never): never => {
-    throw new Error(`InlineElement: Unexpected type ${x}`);
+    throw new Error(`InlineNode: Unexpected type ${x}`);
   };
 
-  return exhaustiveCheck(content);
+  return exhaustiveCheck(node);
 }
 
-function getElementMarks(node: InlineElementWithCallback): MarkType[] {
-  if (!isTextElement(node)) {
+function getNodeMarks(node: InlineNodeWithCallback): MarkKind[] {
+  if (!isTextNode(node)) {
     return [];
   }
-  const marks: MarkType[] = [];
+  const marks: MarkKind[] = [];
   if (node.bold) marks.push("strong");
   if (node.italic) marks.push("emphasis");
   if (node.code) marks.push("inlineCode");
@@ -213,26 +213,26 @@ function getElementMarks(node: InlineElementWithCallback): MarkType[] {
   return marks;
 }
 
-function findNonMatchingSiblingIndex(
-  content: InlineElementWithCallback[],
-  marks: MarkType[]
+function findFirstNonMatchingSiblingIndex(
+  nodes: InlineNodeWithCallback[],
+  marks: MarkKind[]
 ): number {
-  const index = content.findIndex(
-    (item) => !matches(marks, getElementMarks(item))
+  const index = nodes.findIndex(
+    (item) => !arrayMatches(marks, getNodeMarks(item))
   );
-  return index === -1 ? content.length - 1 : index;
+  return index === -1 ? nodes.length - 1 : index;
 }
 
-function calculateMarkCounts(
-  siblings: InlineElementWithCallback[],
-  marks: MarkType[]
-): MarkCounts {
-  const counts: MarkCounts = {};
+function getMarkCounts(
+  siblings: InlineNodeWithCallback[],
+  marks: MarkKind[]
+): MarkCountMap {
+  const counts: MarkCountMap = {};
 
   marks.forEach((mark) => {
     let count = 1;
     siblings.every((sibling, index) => {
-      if (getElementMarks(sibling).includes(mark)) {
+      if (getNodeMarks(sibling).includes(mark)) {
         count = index + 2;
         return true;
       }
@@ -244,129 +244,125 @@ function calculateMarkCounts(
   return counts;
 }
 
-function findHighestCountMark(counts: MarkCounts): MarkType | null {
+function getMarkWithHighestCount(counts: MarkCountMap): MarkKind | null {
   let maxCount = 0;
-  let selectedMark: MarkType | null = null;
+  let selectedMark: MarkKind | null = null;
 
   Object.entries(counts).forEach(([mark, count]) => {
     if (count && count > maxCount) {
       maxCount = count;
-      selectedMark = mark as MarkType;
+      selectedMark = mark as MarkKind;
     }
   });
 
   return selectedMark;
 }
 
-export function eat(
-  content: InlineElementWithCallback[],
+export function processInlineNodes(
+  nodes: InlineNodeWithCallback[],
   field: RichTextType,
-  imageCallback: (url: string) => string
+  imageUrlMapper: (url: string) => string
 ): Md.PhrasingContent[] {
-  const processedContent = replaceLinksWithTextNodes(content);
-  const first = processedContent[0];
+  const normalizedNodes = convertLinksToTextNodes(nodes);
+  const firstNode = normalizedNodes[0];
 
-  if (!first) {
+  if (!firstNode) {
     return [];
   }
 
-  // Handle non-text nodes
-  if (first.type && first.type !== "text") {
-    if (isLinkElement(first)) {
+  if (firstNode.type && firstNode.type !== "text") {
+    if (isLinkNode(firstNode)) {
       return [
-        processLinkNode(first, field, imageCallback),
-        ...eat(processedContent.slice(1), field, imageCallback),
+        handleLinkNode(firstNode, field, imageUrlMapper),
+        ...processInlineNodes(normalizedNodes.slice(1), field, imageUrlMapper),
       ];
     }
     return [
-      processInlineElement(first, field, imageCallback),
-      ...eat(processedContent.slice(1), field, imageCallback),
+      handleInlineNode(firstNode, field, imageUrlMapper),
+      ...processInlineNodes(normalizedNodes.slice(1), field, imageUrlMapper),
     ];
   }
 
-  if (!isTextElement(first)) {
+  if (!isTextNode(firstNode)) {
     throw new Error("Invalid node type");
   }
 
-  const marks = getElementMarks(first) as MarkType[];
+  const marks = getNodeMarks(firstNode) as MarkKind[];
 
-  // Handle unmarked text
   if (marks.length === 0) {
-    const textNode = createTextNode({ text: first.text });
+    const textNode = createMdTextNode({ text: firstNode.text });
     return [
-      first.linkifyTextNode ? first.linkifyTextNode(textNode) : textNode,
-      ...eat(processedContent.slice(1), field, imageCallback),
+      firstNode.linkifyTextNode
+        ? firstNode.linkifyTextNode(textNode)
+        : textNode,
+      ...processInlineNodes(normalizedNodes.slice(1), field, imageUrlMapper),
     ];
   }
 
-  // Process marks
-  const nonMatchingSiblingIndex = findNonMatchingSiblingIndex(
-    processedContent.slice(1),
+  const nonMatchingIndex = findFirstNonMatchingSiblingIndex(
+    normalizedNodes.slice(1),
     marks
   );
-  const matchingSiblings = processedContent.slice(
-    1,
-    nonMatchingSiblingIndex + 1
-  );
-  const markCounts = calculateMarkCounts(matchingSiblings, marks);
-  const markToProcess = findHighestCountMark(markCounts);
+  const matchingSiblings = normalizedNodes.slice(1, nonMatchingIndex + 1);
+  const markCounts = getMarkCounts(matchingSiblings, marks);
+  const markToApply = getMarkWithHighestCount(markCounts);
 
-  if (!markToProcess) {
+  if (!markToApply) {
     return [
-      createTextNode({ text: first.text }),
-      ...eat(processedContent.slice(1), field, imageCallback),
+      createMdTextNode({ text: firstNode.text }),
+      ...processInlineNodes(normalizedNodes.slice(1), field, imageUrlMapper),
     ];
   }
 
-  // Handle inline code
-  if (markToProcess === "inlineCode") {
-    if (nonMatchingSiblingIndex) {
+  if (markToApply === "inlineCode") {
+    if (nonMatchingIndex) {
       throw new Error("Marks inside inline code are not supported");
     }
     const node = {
-      type: markToProcess,
-      value: first.text,
+      type: markToApply,
+      value: firstNode.text,
     } as unknown as Md.Text;
     return [
-      first.linkifyTextNode ? first.linkifyTextNode(node) : node,
-      ...eat(
-        processedContent.slice(nonMatchingSiblingIndex + 1),
+      firstNode.linkifyTextNode ? firstNode.linkifyTextNode(node) : node,
+      ...processInlineNodes(
+        normalizedNodes.slice(nonMatchingIndex + 1),
         field,
-        imageCallback
+        imageUrlMapper
       ),
     ];
   }
 
-  // Process other marks
-  const children = eat(
-    processedContent
-      .slice(0, nonMatchingSiblingIndex + 1)
-      .map((node) => cleanNode(node, markToProcess)),
+  const children = processInlineNodes(
+    normalizedNodes
+      .slice(0, nonMatchingIndex + 1)
+      .map((node) => removeMarkFromNode(node, markToApply)),
     field,
-    imageCallback
+    imageUrlMapper
   );
 
   const markedNode = {
-    type: markToProcess,
+    type: markToApply,
     children,
   } as unknown as Md.Text;
 
   return [
-    first.linkifyTextNode ? first.linkifyTextNode(markedNode) : markedNode,
-    ...eat(
-      processedContent.slice(nonMatchingSiblingIndex + 1),
+    firstNode.linkifyTextNode
+      ? firstNode.linkifyTextNode(markedNode)
+      : markedNode,
+    ...processInlineNodes(
+      normalizedNodes.slice(nonMatchingIndex + 1),
       field,
-      imageCallback
+      imageUrlMapper
     ),
   ];
 }
 
-function cleanNode(
-  node: InlineElementWithCallback,
-  mark: MarkType | null
-): InlineElementWithCallback {
-  if (isTextElement(node)) {
-    const marks = getElementMarks(node);
+function removeMarkFromNode(
+  node: InlineNodeWithCallback,
+  mark: MarkKind | null
+): InlineNodeWithCallback {
+  if (isTextNode(node)) {
+    const marks = getNodeMarks(node);
     return {
       type: "text",
       text: node.text,
@@ -374,15 +370,15 @@ function cleanNode(
       ...Object.fromEntries(
         marks.filter((m) => m !== mark).map((m) => [m, true])
       ),
-    } as InlineElementWithCallback;
+    } as InlineNodeWithCallback;
   }
   return node;
 }
 
-function replaceLinksWithTextNodes(
-  content: (Plate.InlineElement | InlineElementWithCallback)[]
-): InlineElementWithCallback[] {
-  return content?.map((item) => {
+function convertLinksToTextNodes(
+  nodes: (Plate.InlineElement | InlineNodeWithCallback)[]
+): InlineNodeWithCallback[] {
+  return nodes?.map((item) => {
     if (item.type === "a" && item.children?.length === 1) {
       const firstChild = item.children[0];
       if (firstChild?.type === "text") {
@@ -396,9 +392,9 @@ function replaceLinksWithTextNodes(
             title: (item as Plate.LinkElement).title,
             children: [textNode],
           }),
-        } as TextElement;
+        } as TextNode;
       }
     }
-    return item as InlineElementWithCallback;
+    return item as InlineNodeWithCallback;
   });
 }

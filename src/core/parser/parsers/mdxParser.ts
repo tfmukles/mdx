@@ -1,5 +1,5 @@
 import type * as Plate from "@/core/parser/types/plateTypes";
-import { toSitepinsMarkdown } from "@/core/stringify";
+import { convertToSitepinsMarkdown } from "@/core/stringify";
 import type { RichTextType } from "@/types";
 import { ContainerDirective } from "mdast-util-directive";
 import { LeafDirective } from "mdast-util-directive/lib";
@@ -36,7 +36,10 @@ function fallbackToHtmlElement(
   node: MdxJsxTextElement | MdxJsxFlowElement,
   field: RichTextType
 ): Plate.HTMLElement | Plate.HTMLInlineElement {
-  const string = toSitepinsMarkdown({ type: "root", children: [node] }, field);
+  const string = convertToSitepinsMarkdown(
+    { type: "root", children: [node] },
+    field
+  );
   return {
     type: node.type === "mdxJsxFlowElement" ? "html" : "html_inline",
     value: string.trim(),

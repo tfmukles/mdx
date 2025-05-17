@@ -1,5 +1,5 @@
 import type * as Plate from "@/core/parser/types/plateTypes";
-import { getMarks } from "@/core/stringify";
+import { getTextMarks } from "@/core/stringify";
 import type { RichTextField } from "@/types";
 import type * as Md from "mdast";
 import { stringifyPropsInline } from "./jsx-attribute-processor";
@@ -163,7 +163,7 @@ export const eat = (
       ...eat(content.slice(1), field, imageCallback),
     ];
   }
-  const marks = getMarks(first);
+  const marks = getTextMarks(first);
 
   if (marks.length === 0) {
     if (first.linkifyTextNode) {
@@ -178,7 +178,7 @@ export const eat = (
   let nonMatchingSiblingIndex: number = 0;
   if (
     content.slice(1).every((content, index) => {
-      if (matches(marks, getMarks(content))) {
+      if (matches(marks, getTextMarks(content))) {
         return true;
       } else {
         nonMatchingSiblingIndex = index;
@@ -196,7 +196,7 @@ export const eat = (
   marks.forEach((mark) => {
     let count = 1;
     matchingSiblings.every((sibling, index) => {
-      if (getMarks(sibling).includes(mark)) {
+      if (getTextMarks(sibling).includes(mark)) {
         count = index + 1;
         return true;
       }
