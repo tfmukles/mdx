@@ -1,5 +1,8 @@
 import type { BlockContent, DefinitionContent, PhrasingContent } from "mdast";
 
+/**
+ * Common fields for all directive nodes.
+ */
 interface DirectiveFields {
   /**
    * Directive name.
@@ -173,3 +176,10 @@ declare module "mdast" {
     leafDirective: LeafDirective;
   }
 }
+
+/**
+ * This file defines TypeScript types and module augmentations for custom
+ * directive nodes in the mdast (Markdown Abstract Syntax Tree) ecosystem.
+ * It enables support for container, leaf, and text directives, including
+ * their attributes and integration with markdown parsing and serialization.
+ */

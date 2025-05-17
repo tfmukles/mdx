@@ -13,15 +13,15 @@ export const jsxFlow: (
   addResult: boolean | undefined,
   pattern: any
 ) => Construct = function (acorn, acornOptions, addResult, pattern) {
-  const tokenizeJsxFlow: Tokenizer = function (effects, ok, nok) {
+  const tokenize: Tokenizer = function (effects, ok, nok) {
     // eslint-disable-next-line
-    const self = this;
+    const context = this;
 
-    const start: State = function (code) {
+    const startState: State = function (code) {
       return factoryTag.call(
-        self,
+        context,
         effects,
-        factorySpace(effects, after, types.whitespace),
+        factorySpace(effects, afterState, types.whitespace),
         nok,
         acorn,
         acornOptions,
@@ -56,10 +56,10 @@ export const jsxFlow: (
       )(code);
     };
 
-    const after: State = function (code) {
-      const character = findCode(pattern.start[0]);
-      if (code === character) {
-        return start(code);
+    const afterState: State = function (code) {
+      const startCharCode = findCode(pattern.start[0]);
+      if (code === startCharCode) {
+        return startState(code);
       }
       if (code === codes.eof) {
         return ok(code);
@@ -70,10 +70,10 @@ export const jsxFlow: (
       return nok(code);
     };
 
-    return start;
+    return startState;
   };
   return {
-    tokenize: tokenizeJsxFlow,
+    tokenize,
     concrete: true,
   };
 };

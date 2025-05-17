@@ -4,6 +4,7 @@ import type * as Plate from "../../parser/types/plateTypes";
 import { MarkCounts, MarkType } from "../types";
 import { stringifyPropsInline } from "./mdxAttributeSerializer";
 
+// Base interface for all inline elements
 interface BaseInlineElement {
   type?: string;
   text?: string;
@@ -11,6 +12,7 @@ interface BaseInlineElement {
   children?: Plate.InlineElement[];
 }
 
+// Represents a link element
 interface LinkElement extends BaseInlineElement {
   type: "a";
   url: string;
@@ -18,6 +20,7 @@ interface LinkElement extends BaseInlineElement {
   children: Plate.InlineElement[];
 }
 
+// Represents an image element
 interface ImageElement extends BaseInlineElement {
   type: "img";
   url: string;
@@ -26,6 +29,7 @@ interface ImageElement extends BaseInlineElement {
   children: [Plate.EmptyTextElement];
 }
 
+// Represents an MDX JSX text element
 interface MdxElement extends BaseInlineElement {
   type: "mdxJsxTextElement";
   name: string | null;
@@ -33,12 +37,14 @@ interface MdxElement extends BaseInlineElement {
   children: [Plate.EmptyTextElement];
 }
 
+// Represents inline HTML
 interface HtmlElement extends BaseInlineElement {
   type: "html_inline";
   value: string;
   children: [Plate.EmptyTextElement];
 }
 
+// Represents a text element with possible marks
 interface TextElement extends BaseInlineElement {
   type: "text";
   text: string;
@@ -48,11 +54,13 @@ interface TextElement extends BaseInlineElement {
   strikethrough?: boolean;
 }
 
+// Represents a line break
 interface BreakElement extends BaseInlineElement {
   type: "break";
   children: [Plate.EmptyTextElement];
 }
 
+// Union type for all inline elements handled by this module
 type InlineElementWithCallback =
   | LinkElement
   | ImageElement
@@ -61,10 +69,12 @@ type InlineElementWithCallback =
   | TextElement
   | BreakElement;
 
+// Simple text content interface
 interface TextContent {
   text: string;
 }
 
+// Creates an mdast text node from content
 function createTextNode(content: TextContent): Md.Text {
   return {
     type: "text",
@@ -72,6 +82,7 @@ function createTextNode(content: TextContent): Md.Text {
   };
 }
 
+// Type guards for each inline element type
 function isLinkElement(node: InlineElementWithCallback): node is LinkElement {
   return node.type === "a" && "url" in node && typeof node.url === "string";
 }
@@ -96,6 +107,7 @@ function isTextElement(node: InlineElementWithCallback): node is TextElement {
   return (!node.type || node.type === "text") && typeof node.text === "string";
 }
 
+// Processes a link node (should not be called directly)
 function processLinkNode(
   node: LinkElement,
   field: RichTextType,
@@ -113,6 +125,7 @@ function processLinkNode(
   };
 }
 
+// Processes an image node
 function processImageNode(
   node: ImageElement,
   imageCallback: (url: string) => string
@@ -125,6 +138,7 @@ function processImageNode(
   };
 }
 
+// Processes an MDX JSX text element node
 function processMdxJsxTextElement(
   node: MdxElement,
   field: RichTextType,
@@ -148,6 +162,7 @@ function processMdxJsxTextElement(
   } as Md.PhrasingContent;
 }
 
+// Processes inline HTML node
 function processInlineHtml(node: HtmlElement): Md.HTML {
   return {
     type: "html",
@@ -155,6 +170,7 @@ function processInlineHtml(node: HtmlElement): Md.HTML {
   };
 }
 
+// Processes a single inline element and returns the corresponding mdast node
 function processInlineElement(
   content: InlineElementWithCallback,
   field: RichTextType,
@@ -189,6 +205,7 @@ function processInlineElement(
   throw new Error("InlineElement: Unexpected element type");
 }
 
+// Returns the marks (bold, italic, etc.) for a text element
 function getElementMarks(node: InlineElementWithCallback): MarkType[] {
   const marks: MarkType[] = [];
   if (isTextElement(node)) {
@@ -200,6 +217,7 @@ function getElementMarks(node: InlineElementWithCallback): MarkType[] {
   return marks;
 }
 
+// Finds the index of the first sibling that does not have the same marks
 function findNonMatchingSiblingIndex(
   content: InlineElementWithCallback[],
   marks: MarkType[]
@@ -210,6 +228,7 @@ function findNonMatchingSiblingIndex(
   });
 }
 
+// Calculates how many siblings have each mark
 function calculateMarkCounts(
   siblings: InlineElementWithCallback[],
   marks: MarkType[]
@@ -223,6 +242,7 @@ function calculateMarkCounts(
   }, {} as MarkCounts);
 }
 
+// Finds the mark with the highest count among siblings
 function findHighestCountMark(counts: MarkCounts): MarkType | null {
   let highestCount = 0;
   let highestMark: MarkType | null = null;
@@ -237,6 +257,7 @@ function findHighestCountMark(counts: MarkCounts): MarkType | null {
   return highestMark;
 }
 
+// Main function to recursively process inline elements and wrap them with marks
 export function eat(
   content: InlineElementWithCallback[],
   field: RichTextType,
@@ -279,6 +300,7 @@ export function eat(
   return [wrapper, ...eat(rest, field, imageCallback)];
 }
 
+// Removes a specific mark from a text node
 function cleanNode(
   node: InlineElementWithCallback,
   mark: MarkType | null
@@ -305,6 +327,7 @@ function cleanNode(
   return cleanedNode;
 }
 
+// Utility to replace link elements with text nodes (for certain processing scenarios)
 function replaceLinksWithTextNodes(
   content: (Plate.InlineElement | InlineElementWithCallback)[]
 ): InlineElementWithCallback[] {

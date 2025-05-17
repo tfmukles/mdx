@@ -1,43 +1,60 @@
-import { codes } from 'micromark-util-symbol/codes';
-import { values } from 'micromark-util-symbol/values';
+import { codes } from "micromark-util-symbol/codes";
+import { values } from "micromark-util-symbol/values";
 
-const findValue = (string: string): string | null => {
-  let lookupValue: string | null = null;
-  Object.entries(values).forEach(([key, value]) => {
-    if (value === string) {
-      lookupValue = key;
+/**
+ * Finds the key in the `values` object that matches the provided string value.
+ * @param value - The string value to look up.
+ * @returns The key corresponding to the value, or null if not found.
+ */
+const getValueKey = (value: string): string | null => {
+  for (const [key, val] of Object.entries(values)) {
+    if (val === value) {
+      return key;
     }
-  });
-  return lookupValue;
+  }
+  return null;
 };
-export const findCode = (string: string | undefined | null): number | null => {
-  if (!string) {
+
+/**
+ * Finds the code (number) in the `codes` object that corresponds to the given string value.
+ * @param value - The string value to look up.
+ * @returns The code as a number, or null if not found.
+ */
+export const findCode = (value: string | undefined | null): number | null => {
+  if (!value) {
     return null;
   }
-  const lookup = findValue(string);
-  let lookupValue: number | null = null;
-  if (lookup) {
-    Object.entries(codes).forEach(([key, value]) => {
-      if (key === lookup) {
-        lookupValue = value;
-      }
-    });
+  const key = getValueKey(value);
+  if (key && Object.prototype.hasOwnProperty.call(codes, key)) {
+    return codes[key as keyof typeof codes];
   }
-  return lookupValue;
+  return null;
 };
-export const printCode = (num: number) => {
-  let lookupValue: string | null = null;
-  Object.entries(codes).forEach(([key, value]) => {
-    if (value === num) {
-      lookupValue = key;
+
+/**
+ * Prints the key name in `codes` that matches the provided code number.
+ * @param code - The code number to look up.
+ */
+export const printCode = (code: number): void => {
+  for (const [key, val] of Object.entries(codes)) {
+    if (val === code) {
+      console.log(key);
+      return;
     }
-  });
-  console.log(lookupValue);
+  }
+  console.log(null);
 };
-export const logSelf = (item: any) => {
+
+/**
+ * Logs the events of a given item, showing event type and serialized slice.
+ * @param item - The object containing events and a sliceSerialize method.
+ */
+export const logSelf = (item: any): void => {
   console.log(
-    item.events.map((e: any) => {
-      return `${e[0]} - ${e[1].type} | ${item.sliceSerialize(e[1])}`;
+    item.events.map((event: any) => {
+      return `${event[0]} - ${event[1].type} | ${item.sliceSerialize(
+        event[1]
+      )}`;
     })
   );
 };

@@ -115,6 +115,26 @@ const createAttributeValueExit = (type?: string): FromMarkdownHandle => {
   };
 };
 
+/**
+ * Extension for parsing directives from Markdown using the `mdast-util-from-markdown` interface.
+ *
+ * This extension defines how to handle entering and exiting various directive nodes
+ * (container, leaf, and text directives) and their attributes during the Markdown parsing process.
+ *
+ * - `canContainEols`: Specifies node types that can contain end-of-line characters.
+ * - `enter`: Handlers invoked when entering directive nodes and their attributes.
+ * - `exit`: Handlers invoked when exiting directive nodes and their attributes.
+ *
+ * The handlers manage the transformation of Markdown directive syntax into the corresponding
+ * MDAST (Markdown Abstract Syntax Tree) nodes, supporting custom attributes such as `class`, `id`, and others.
+ *
+ * @remarks
+ * This extension is intended to be used with a Markdown parser that supports custom directives,
+ * enabling advanced syntax and attribute handling within Markdown documents.
+ *
+ * @see {@link FromMarkdownExtension}
+ */
+
 export const directiveFromMarkdown: FromMarkdownExtension = {
   canContainEols: ["textDirective"],
   enter: {

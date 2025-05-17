@@ -11,6 +11,7 @@ import { codes } from "micromark-util-symbol/codes";
 import { types } from "micromark-util-symbol/types";
 import type { Code, Effects, State } from "micromark-util-types";
 
+// Context for attribute handler state machine
 interface AttributeHandlerContext {
   effects: Effects;
   type: string;
@@ -18,6 +19,7 @@ interface AttributeHandlerContext {
   disallowEol?: boolean;
 }
 
+// All state handler functions for attribute parsing
 interface AttributeStateHandlers {
   start: State;
   between: State;
@@ -35,6 +37,10 @@ interface AttributeStateHandlers {
   end: State;
 }
 
+/**
+ * Creates state handlers for parsing directive attributes.
+ * Handles attribute names, values, shortcuts (#, .), and quoted/unquoted values.
+ */
 function createAttributeStateHandlers(
   context: AttributeHandlerContext,
   ok: State,
@@ -68,11 +74,13 @@ function createAttributeStateHandlers(
     attributeValueData,
   } = attributeTypes;
 
+  // Entry point: start parsing attributes
   const start: State = function (code) {
     effects.enter(attributesType);
     return between(code);
   };
 
+  // Between attributes: look for next attribute or end
   const between: State = function (code) {
     if (code === codes.numberSign) {
       context.type = attributeIdType;
@@ -109,6 +117,7 @@ function createAttributeStateHandlers(
     return end(code);
   };
 
+  // Start parsing shortcut attribute (#id or .class)
   const shortcutStart: State = function (code) {
     effects.enter(attributeType);
     effects.enter(context.type);
@@ -118,6 +127,7 @@ function createAttributeStateHandlers(
     return shortcutStartAfter;
   };
 
+  // After shortcut marker, expect value
   const shortcutStartAfter: State = function (code) {
     if (isInvalidShortcutStartCode(code)) {
       return nok(code);
@@ -128,6 +138,7 @@ function createAttributeStateHandlers(
     return shortcut;
   };
 
+  // Parse shortcut value until end
   const shortcut: State = function (code) {
     if (isInvalidShortcutCode(code)) {
       return nok(code);
@@ -144,6 +155,7 @@ function createAttributeStateHandlers(
     return shortcut;
   };
 
+  // Parse attribute name
   const name: State = function (code) {
     if (isValidNameCode(code)) {
       effects.consume(code);
@@ -163,6 +175,7 @@ function createAttributeStateHandlers(
     return nameAfter(code);
   };
 
+  // After attribute name, expect '=' or next attribute
   const nameAfter: State = function (code) {
     if (code === codes.equalsTo) {
       effects.enter(attributeInitializerType);
@@ -175,6 +188,7 @@ function createAttributeStateHandlers(
     return between(code);
   };
 
+  // Before attribute value, handle quoted/unquoted values
   const valueBefore: State = function (code) {
     if (isInvalidValueCode(code) || (disallowEol && markdownLineEnding(code))) {
       return nok(code);
@@ -204,6 +218,7 @@ function createAttributeStateHandlers(
     return valueUnquoted;
   };
 
+  // Parse unquoted attribute value
   const valueUnquoted: State = function (code) {
     if (isInvalidUnquotedValueCode(code)) {
       return nok(code);
@@ -220,6 +235,7 @@ function createAttributeStateHandlers(
     return valueUnquoted;
   };
 
+  // Start parsing quoted attribute value
   const valueQuotedStart: State = function (code) {
     if (code === context.marker) {
       effects.enter(attributeValueMarker);
@@ -234,6 +250,7 @@ function createAttributeStateHandlers(
     return valueQuotedBetween(code);
   };
 
+  // Parse inside quoted value, handle end quote
   const valueQuotedBetween: State = function (code) {
     if (code === context.marker) {
       effects.exit(attributeValueType);
@@ -255,6 +272,7 @@ function createAttributeStateHandlers(
     return valueQuoted;
   };
 
+  // Parse quoted value content
   const valueQuoted: State = function (code) {
     if (
       code === context.marker ||
@@ -269,12 +287,14 @@ function createAttributeStateHandlers(
     return valueQuoted;
   };
 
+  // After quoted value, expect next attribute or end
   const valueQuotedAfter: State = function (code) {
     return code === codes.rightCurlyBrace || markdownLineEndingOrSpace(code)
       ? between(code)
       : end(code);
   };
 
+  // End of attributes parsing
   const end: State = function (code) {
     if (!asciiAlpha(code)) {
       effects.enter(attributesMarkerType);
@@ -304,6 +324,7 @@ function createAttributeStateHandlers(
   };
 }
 
+// Check if code is invalid at the start of a shortcut attribute
 function isInvalidShortcutStartCode(code: number): boolean {
   return (
     code === codes.eof ||
@@ -320,6 +341,7 @@ function isInvalidShortcutStartCode(code: number): boolean {
   );
 }
 
+// Check if code is invalid inside a shortcut attribute value
 function isInvalidShortcutCode(code: number): boolean {
   return (
     code === codes.eof ||
@@ -332,6 +354,7 @@ function isInvalidShortcutCode(code: number): boolean {
   );
 }
 
+// Check if code marks the end of a shortcut attribute
 function isShortcutEndCode(code: number): boolean {
   return (
     code === codes.numberSign ||
@@ -341,6 +364,7 @@ function isShortcutEndCode(code: number): boolean {
   );
 }
 
+// Check if code is valid for attribute names
 function isValidNameCode(code: number): boolean {
   return (
     code === codes.dash ||
@@ -351,6 +375,7 @@ function isValidNameCode(code: number): boolean {
   );
 }
 
+// Check if code is invalid for attribute values
 function isInvalidValueCode(code: number): boolean {
   return (
     code === codes.eof ||
@@ -362,6 +387,7 @@ function isInvalidValueCode(code: number): boolean {
   );
 }
 
+// Check if code is invalid for unquoted attribute values
 function isInvalidUnquotedValueCode(code: number): boolean {
   return (
     code === codes.eof ||
@@ -374,6 +400,10 @@ function isInvalidUnquotedValueCode(code: number): boolean {
   );
 }
 
+/**
+ * Factory for attribute parsing state machine.
+ * Returns the entry state for parsing directive attributes.
+ */
 export function factoryAttributes(
   effects: Effects,
   ok: State,

@@ -4,6 +4,10 @@ import type * as Md from "mdast";
 import { eat } from "./inline-marks-processor";
 import { stringifyProps } from "./jsx-attribute-processor";
 
+/**
+ * Helper to transform a Plate.RootElement into Md.Root.
+ * Used for cases where a root element needs to be converted.
+ */
 export const preProcess = (
   tree: Plate.RootElement,
   field: RichTextField,
@@ -13,6 +17,10 @@ export const preProcess = (
   return ast;
 };
 
+/**
+ * Helper to transform a Plate.RootElement into Md.Root.
+ * Used for cases where a root element needs to be converted.
+ */
 export const rootElement = (
   content: Plate.RootElement,
   field: RichTextField,
@@ -186,6 +194,10 @@ export const blockElement = (
       throw new Error(`BlockElement: ${content.type} is not yet supported`);
   }
 };
+/**
+ * Helper to transform a Plate.ListItemElement into Md.ListItem.
+ * Used for cases where a list item element needs to be converted.
+ */
 const listItemElement = (
   content: Plate.ListItemElement,
   field: RichTextField,
@@ -207,6 +219,11 @@ const listItemElement = (
     }),
   };
 };
+
+/**
+ * Helper to transform a Plate.BlockElement into Md.BlockContent.
+ * Used for cases where a block element needs to be converted.
+ */
 const blockContentElement = (
   content: Plate.BlockElement,
   field: RichTextField,
@@ -242,4 +259,18 @@ const blockContentElement = (
         `BlockContentElement: ${content.type} is not yet supported`
       );
   }
+};
+
+/**
+ * Helper to transform a Plate.BlockElement[] into Md.BlockContent[].
+ * Used for cases where an array of block elements needs to be converted.
+ */
+export const blockElementsToMdast = (
+  elements: Plate.BlockElement[],
+  field: RichTextField,
+  imageCallback: (url: string) => string
+): Md.BlockContent[] => {
+  return elements
+    .map((block) => blockElement(block, field, imageCallback))
+    .filter((node): node is Md.BlockContent => !!node);
 };

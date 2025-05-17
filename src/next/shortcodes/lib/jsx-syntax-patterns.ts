@@ -4,6 +4,9 @@ import { jsxFlow } from "./jsx-block-parser";
 import { jsxText } from "./jsx-inline-parser";
 import { findCode } from "./jsx-parser-utils";
 
+/**
+ * Pattern definition for matching custom JSX-like syntax.
+ */
 export type Pattern = {
   start: string;
   end: string;
@@ -13,6 +16,9 @@ export type Pattern = {
   leaf: boolean;
 };
 
+/**
+ * Options for configuring the mdxJsx extension.
+ */
 export type Options = {
   acorn?: Acorn;
   acornOptions?: AcornOptions;
@@ -21,19 +27,25 @@ export type Options = {
   skipHTML?: boolean;
 };
 
+/**
+ * Creates a micromark extension for parsing custom JSX-like patterns.
+ * @param options - Configuration options for the extension.
+ * @returns An Extension object for micromark.
+ */
 export function mdxJsx(options: Options = {}): Extension {
-  const acorn = options.acorn;
+  const acornInstance = options.acorn;
   /** @type {AcornOptions|undefined} */
-  let acornOptions: AcornOptions | undefined;
+  let mergedAcornOptions: AcornOptions | undefined;
 
-  if (acorn) {
-    if (!acorn.parse || !acorn.parseExpressionAt) {
+  // Validate and merge Acorn options if Acorn is provided
+  if (acornInstance) {
+    if (!acornInstance.parse || !acornInstance.parseExpressionAt) {
       throw new Error(
         "Expected a proper `acorn` instance passed in as `options.acorn`"
       );
     }
 
-    acornOptions = Object.assign(
+    mergedAcornOptions = Object.assign(
       { ecmaVersion: 2020, sourceType: "module" },
       options.acornOptions,
       { locations: true }
@@ -44,42 +56,69 @@ export function mdxJsx(options: Options = {}): Extension {
     );
   }
 
-  const patterns = options.patterns || [];
+  const patternList = options.patterns || [];
 
-  const flowRules: Record<string, Construct[]> = {};
-  const textRules: Record<string, Construct[]> = {};
-  patterns.forEach((pattern) => {
-    const firstCharacter = findCode(pattern.start[0])?.toString();
-    if (!firstCharacter) {
+  // Build rules for flow and text constructs based on patterns
+  const flowConstructs: Record<string, Construct[]> = {};
+  const textConstructs: Record<string, Construct[]> = {};
+  patternList.forEach((pattern) => {
+    const firstCharCode = findCode(pattern.start[0])?.toString();
+    if (!firstCharCode) {
       return;
     }
 
     if (pattern.type === "flow") {
-      const existing = flowRules[firstCharacter];
-      flowRules[firstCharacter] = existing
+      const existingFlow = flowConstructs[firstCharCode];
+      flowConstructs[firstCharCode] = existingFlow
         ? [
-            ...existing,
-            jsxFlow(acorn, acornOptions, options.addResult, pattern),
+            ...existingFlow,
+            jsxFlow(
+              acornInstance,
+              mergedAcornOptions,
+              options.addResult,
+              pattern
+            ),
           ]
-        : [jsxFlow(acorn, acornOptions, options.addResult, pattern)];
+        : [
+            jsxFlow(
+              acornInstance,
+              mergedAcornOptions,
+              options.addResult,
+              pattern
+            ),
+          ];
     } else {
-      const existing = textRules[firstCharacter];
-      textRules[firstCharacter] = existing
+      const existingText = textConstructs[firstCharCode];
+      textConstructs[firstCharCode] = existingText
         ? [
-            ...existing,
-            jsxText(acorn, acornOptions, options.addResult, pattern),
+            ...existingText,
+            jsxText(
+              acornInstance,
+              mergedAcornOptions,
+              options.addResult,
+              pattern
+            ),
           ]
-        : [jsxText(acorn, acornOptions, options.addResult, pattern)];
+        : [
+            jsxText(
+              acornInstance,
+              mergedAcornOptions,
+              options.addResult,
+              pattern
+            ),
+          ];
     }
   });
 
-  let disabledTokens: string[] = [];
+  // Optionally disable HTML parsing tokens
+  let disabledTokenList: string[] = [];
   if (options.skipHTML) {
-    disabledTokens = ["htmlFlow", "htmlText"];
+    disabledTokenList = ["htmlFlow", "htmlText"];
   }
+
   return {
-    flow: flowRules,
-    text: textRules,
-    disable: { null: disabledTokens },
+    flow: flowConstructs,
+    text: textConstructs,
+    disable: { null: disabledTokenList },
   };
 }

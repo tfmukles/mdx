@@ -4,6 +4,21 @@ export const DirectiveTypes = {
   TEXT: "textDirective",
 } as const;
 
+/**
+ * Defines token constants used for parsing and identifying directive containers and leaf nodes
+ * in the sitepins-shortcodes extension. These tokens represent various syntactic elements such as
+ * fences, sequences, names, attributes, and attribute values for both container and leaf directives.
+ *
+ * @remarks
+ * - `DirectiveTokens.CONTAINER` contains tokens specific to container directives, which may include
+ *   content blocks and attribute definitions.
+ * - `DirectiveTokens.LEAF` contains tokens specific to leaf directives, which are self-contained and
+ *   do not have nested content.
+ *
+ * @example
+ * Use these tokens to match or generate AST nodes when processing directive syntax in markdown.
+ */
+
 export const DirectiveTokens = {
   CONTAINER: {
     FENCE: "directiveContainerFence",

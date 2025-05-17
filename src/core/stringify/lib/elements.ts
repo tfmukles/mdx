@@ -3,6 +3,10 @@ import type * as Md from "mdast";
 import type * as Plate from "../../parser/types/plateTypes";
 import { eat } from "../handlers/";
 
+/**
+ * Converts a Plate.RootElement to an Mdast Root node.
+ * Iterates over all block children and serializes them.
+ */
 export const rootElement = (
   content: Plate.RootElement,
   field: RichTextType,
@@ -21,6 +25,10 @@ export const rootElement = (
   };
 };
 
+/**
+ * Converts a Plate.BlockElement to an Mdast Content node.
+ * Handles headings, paragraphs, mermaid/code blocks, and ignores empty paragraphs.
+ */
 export const blockElement = (
   content: Plate.BlockElement,
   field: RichTextType,

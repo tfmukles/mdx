@@ -14,10 +14,12 @@ import { DirectiveTypes } from "./constants";
 import type { Directive, DirectivePattern } from "./types";
 import { getPatternName, isInlineDirectiveLabel } from "./utils";
 
+// Extends the ToMarkdownHandle interface to optionally include a peek method
 interface ExtendedToMarkdownHandle extends ToMarkdownHandle {
   peek?: () => string;
 }
 
+// Options for the directive handler, including node, pattern, state, and tracker
 interface DirectiveHandlerOptions {
   node: Directive;
   pattern: DirectivePattern;
@@ -25,6 +27,7 @@ interface DirectiveHandlerOptions {
   tracker: ReturnType<typeof track>;
 }
 
+// Formats directive attributes as a string for markdown output
 const formatAttributes = (node: Directive, state: State): string => {
   const quote = checkQuote(state);
   const subset =
@@ -43,6 +46,7 @@ const formatAttributes = (node: Directive, state: State): string => {
     .concat(Object.keys(attrs).length ? " " : "");
 };
 
+// Handles rendering of directive labels (e.g., [label]) in markdown
 const handleLabel = ({
   node,
   state,
@@ -71,6 +75,7 @@ const handleLabel = ({
   return value;
 };
 
+// Handles rendering of container directive content in markdown
 const handleContainerContent = ({
   node,
   state,
@@ -92,6 +97,7 @@ const handleContainerContent = ({
   return value;
 };
 
+// Main handler for converting directives to markdown using provided patterns
 const handleDirective =
   (patterns: DirectivePattern[]): ExtendedToMarkdownHandle =>
   (node, _, state, safeOptions) => {
@@ -127,6 +133,7 @@ const handleDirective =
     return value;
   };
 
+// Exports the directiveToMarkdown extension for mdast-util-to-markdown
 export const directiveToMarkdown = (
   patterns: DirectivePattern[]
 ): ToMarkdownExtension => ({

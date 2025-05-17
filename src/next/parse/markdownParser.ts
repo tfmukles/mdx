@@ -8,18 +8,20 @@ import { mdxJsx } from "../shortcodes";
 import { mdxJsxFromMarkdown } from "../shortcodes/mdast";
 import { getFieldPatterns } from "../util";
 
-export const fromMarkdown = (value: string, field: RichTextField) => {
+export function fromMarkdown(markdown: string, field: RichTextField) {
   const patterns = getFieldPatterns(field);
-  const acornDefault = acorn as unknown as Options["acorn"];
-  const skipHTML = false;
+  const acornParser = acorn as Options["acorn"];
 
-  const tree = mdastFromMarkdown(value, {
+  return mdastFromMarkdown(markdown, {
     extensions: [
       gfm(),
-      mdxJsx({ acorn: acornDefault, patterns, addResult: true, skipHTML }),
+      mdxJsx({
+        acorn: acornParser,
+        patterns,
+        addResult: true,
+        skipHTML: false,
+      }),
     ],
     mdastExtensions: [gfmFromMarkdown(), mdxJsxFromMarkdown({ patterns })],
   });
-
-  return tree;
-};
+}

@@ -4,6 +4,15 @@ import { compact } from "mdast-util-compact";
 import { fromMarkdown } from "./markdownParser";
 import { postProcessor } from "./mdxPostProcessor";
 
+/**
+ * Parses an MDX string and processes its AST.
+ *
+ * @param value - The MDX content as a string to be parsed.
+ * @param field - The rich text field configuration used for parsing.
+ * @param imageCallback - Optional. A callback function to process image URLs found in the MDX content.
+ *                        If not provided, a default identity function is used.
+ * @returns The processed AST after parsing and post-processing the MDX content.
+ */
 export const parseMDX = (
   value: string,
   field: RichTextField,

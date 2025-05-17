@@ -63,6 +63,24 @@ const processTableCell = (
   ],
 });
 
+/**
+ * Converts a Markdown Abstract Syntax Tree (AST) node (from remark/MDX) into a Slate-compatible Plate document structure.
+ *
+ * @param root - The root node of the Markdown AST. Can be a standard Markdown root, an MDX JSX flow/text element, or a container directive.
+ * @param field - The rich text field type, used for context in certain transformations.
+ * @param imageCallback - A callback function to process image URLs before including them in the output.
+ * @param raw - (Optional) The raw Markdown string, used for context in directive processing.
+ * @param skipMDXProcess - (Optional) If true, skips the default MDX JSX element processing.
+ * @returns The Plate-compatible root element representing the transformed document.
+ *
+ * @throws {RichTextParseError} If an unsupported or unexpected node type is encountered during transformation.
+ *
+ * @remarks
+ * This function recursively traverses the Markdown AST and maps each node to its corresponding Plate element,
+ * handling block elements (e.g., paragraphs, headings, lists, tables), inline elements (e.g., text, emphasis, links, images),
+ * and MDX/HTML directives. It supports custom image URL processing and can be extended for additional node types.
+ */
+
 export const remarkToSlate = (
   root: Md.Root | MdxJsxFlowElement | MdxJsxTextElement | ContainerDirective,
   field: RichTextType,

@@ -1,6 +1,15 @@
 import { Template } from "@/types";
 import { Pattern } from "../types";
 
+/**
+ * Replaces shortcode patterns in the content with corresponding JSX elements.
+ * Throws if a global template (string) is provided.
+ * If no match pattern is defined, returns the content unchanged.
+ *
+ * @param content - The input string containing shortcodes.
+ * @param template - The template definition with match pattern and name.
+ * @returns The content with shortcodes replaced by JSX elements.
+ */
 export function stringifyShortcode(
   content: string,
   template: Template

@@ -1,11 +1,17 @@
 import type { RichTextField, RichTextTemplate } from "@/types";
 import type { Pattern } from "./shortcodes";
 
-export const getFieldPatterns = (field: RichTextField) => {
+/**
+ * Extracts all Pattern definitions from a RichTextField's templates.
+ * Recursively hoists templates from nested rich-text fields.
+ * @param field The RichTextField to extract patterns from.
+ * @returns Array of Pattern objects for markdown parsing.
+ */
+export const getFieldPatterns = (field: RichTextField): Pattern[] => {
   const patterns: Pattern[] = [];
-  const templates: RichTextTemplate[] = [];
-  hoistAllTemplates(field, templates);
-  templates?.forEach((template) => {
+  const allTemplates: RichTextTemplate[] = [];
+  hoistAllTemplates(field, allTemplates);
+  allTemplates.forEach((template) => {
     if (typeof template === "string") {
       throw new Error("Global templates not supported");
     }
@@ -23,23 +29,25 @@ export const getFieldPatterns = (field: RichTextField) => {
   return patterns;
 };
 
-// Since the markdown parser doesn't care where in the string
-// of markdown we are, it's not possible (or at least, not easy)
-// to know whether a node is nested inside a parent field without
-// making multiple passes at it. Instead, just treat all templates
-// as top-level.
+/**
+ * Recursively collects all RichTextTemplate objects from a RichTextField,
+ * including those nested in child rich-text fields.
+ * @param field The RichTextField to collect templates from.
+ * @param templates Accumulator array for templates.
+ * @returns The accumulator array with all templates.
+ */
 const hoistAllTemplates = (
   field: RichTextField,
   templates: RichTextTemplate[] = []
-) => {
+): RichTextTemplate[] => {
   field.templates?.forEach((template) => {
     if (typeof template === "string") {
       throw new Error("Global templates not supported");
     }
     templates.push(template);
-    template.fields.forEach((field) => {
-      if (field.type === "rich-text") {
-        hoistAllTemplates(field, templates);
+    template.fields.forEach((childField) => {
+      if (childField.type === "rich-text") {
+        hoistAllTemplates(childField, templates);
       }
     });
   });

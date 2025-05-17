@@ -81,6 +81,16 @@ const preprocessTemplates = (value: string, field: RichTextType): string => {
   return preprocessedString;
 };
 
+/**
+ * Parses an MDX string into a Plate.RootElement structure.
+ *
+ * @param value - The MDX string to parse.
+ * @param field - The rich text field configuration, including parser options.
+ * @param imageCallback - A callback function to process image URLs found in the MDX.
+ * @returns The parsed Plate.RootElement representing the MDX content.
+ *
+ * @throws {RichTextParseError} If parsing fails due to invalid markdown or other errors.
+ */
 export const parseMDX = (
   value: string,
   field: RichTextType,

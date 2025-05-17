@@ -11,11 +11,17 @@ import { Pattern } from "../types";
 import { stringifyShortcode } from "../utils/index";
 import { rootElement } from "./elements";
 
+/**
+ * Converts a Plate.RootElement (rich text AST) to an MDX string.
+ * Handles both markdown and MDX modes, applies template shortcodes,
+ * and processes invalid markdown nodes.
+ */
 export const stringifyMDX = (
   value: Plate.RootElement,
   field: RichTextField,
   imageCallback: (url: string) => string
 ) => {
+  // If markdown mode, delegate to next implementation
   if (field.parser?.type === "markdown") {
     return stringifyMDXNext(value, field, imageCallback);
   }
@@ -25,13 +31,17 @@ export const stringifyMDX = (
   if (typeof value === "string") {
     throw new Error("Expected an object to stringify, but received a string");
   }
+  // Handle invalid markdown nodes
   if (value?.children[0]) {
     if (value?.children[0].type === "invalid_markdown") {
       return value.children[0].value;
     }
   }
+  // Convert Plate AST to MDAST
   const tree = rootElement(value, field, imageCallback);
+  // Convert MDAST to markdown string
   const res = toSitepinsMarkdown(tree, field);
+  // Apply template shortcodes if any
   const templatesWithMatchers = field.templates?.filter(
     (template) => template.match
   );
@@ -47,7 +57,12 @@ export const stringifyMDX = (
   return preprocessedString;
 };
 
+/**
+ * Converts an MDAST tree to a markdown string using custom handlers and extensions.
+ * Handles directive patterns, GFM, and MDX JSX.
+ */
 export const toSitepinsMarkdown = (tree: Md.Root, field: RichTextType) => {
+  // Collect directive patterns from templates
   const patterns: Pattern[] = [];
   field.templates?.forEach((template) => {
     if (typeof template === "string") {
@@ -60,8 +75,10 @@ export const toSitepinsMarkdown = (tree: Md.Root, field: RichTextType) => {
     }
   });
 
+  // Custom handlers for markdown serialization
   const handlers: Partial<Handlers> = {};
   handlers["text"] = (node, parent, context, safeOptions) => {
+    // Remove unsafe space escaping in phrasing context
     context.unsafe = context.unsafe.filter((unsafeItem) => {
       if (
         unsafeItem.character === " " &&
@@ -71,6 +88,7 @@ export const toSitepinsMarkdown = (tree: Md.Root, field: RichTextType) => {
       }
       return true;
     });
+    // Handle skipEscaping options for markdown parser
     if (field.parser?.type === "markdown") {
       if (field.parser.skipEscaping === "all") {
         return node.value;
@@ -87,6 +105,7 @@ export const toSitepinsMarkdown = (tree: Md.Root, field: RichTextType) => {
     return text(node, parent, context, safeOptions);
   };
 
+  // Serialize MDAST to markdown with extensions
   return toMarkdown(tree, {
     extensions: [
       directiveToMarkdown(patterns),

@@ -32,6 +32,31 @@ interface DirectiveContainerState {
   closeEndSequenceIndex: number;
 }
 
+/**
+ * Creates a directive container construct for a custom Markdown extension.
+ *
+ * This function returns a `Construct` that tokenizes directive containers based on the provided pattern.
+ * It supports parsing of opening and closing fences, directive names, attributes, and content blocks.
+ * The tokenizer manages state transitions for the container's lifecycle, including handling whitespace,
+ * line endings, attributes, and nested content.
+ *
+ * @param pattern - The directive pattern specifying the start and end sequences, and the directive name.
+ * @returns A `Construct` object with a tokenizer for directive containers.
+ *
+ * @remarks
+ * - The tokenizer is designed to work with the unified/remark parser ecosystem.
+ * - It supports lazy line handling and custom attribute parsing.
+ * - The construct is concrete, meaning it cannot be further extended.
+ *
+ * @example
+ * ```typescript
+ * const myDirective = directiveContainer({
+ *   start: ':::',
+ *   end: ':::',
+ *   name: 'note'
+ * });
+ * ```
+ */
 export const directiveContainer = (pattern: DirectivePattern): Construct => {
   const tokenizeDirectiveContainer: Tokenizer = function (effects, ook, nnok) {
     const self = this as unknown as CustomTokenizeContext & {

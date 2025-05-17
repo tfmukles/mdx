@@ -9,6 +9,10 @@ import parser from "prettier/esm/parser-espree.mjs";
 import { rootElement, stringifyMDX } from ".";
 import * as Plate from "../parser/types/plateTypes";
 
+/**
+ * Serializes the props and children of an MdxJsxTextElement into MDX attribute values and phrasing content.
+ * Handles primitive, null, and object props, and recursively stringifies children using `eat`.
+ */
 export const stringifyPropsInline = (
   element: Plate.MdxInlineElement,
   field: RichTextField,
@@ -16,6 +20,11 @@ export const stringifyPropsInline = (
 ): { attributes: MdxJsxAttribute[]; children: Md.PhrasingContent[] } => {
   return stringifyProps(element, field, true, imageCallback);
 };
+
+/**
+ * Serializes the props and children of an MdxJsxFlowElement or MdxJsxTextElement into MDX attribute values and MDAST children.
+ * Handles primitive, null, and object props, and recursively stringifies children using `eat`.
+ */
 export function stringifyProps(
   element: Plate.MdxInlineElement,
   parentField: RichTextField,
@@ -27,6 +36,7 @@ export function stringifyProps(
   useDirective: boolean;
   directiveType: string;
 };
+
 export function stringifyProps(
   element: Plate.MdxBlockElement,
   parentField: RichTextField,
@@ -38,6 +48,12 @@ export function stringifyProps(
   useDirective: boolean;
   directiveType: string;
 };
+
+/**
+ * Main implementation for serializing props and children of MDX elements.
+ * Determines the correct template, processes each prop according to its field type,
+ * and handles nested rich-text and object fields.
+ */
 export function stringifyProps(
   element: Plate.MdxBlockElement | Plate.MdxInlineElement,
   parentField: RichTextField,
@@ -54,6 +70,7 @@ export function stringifyProps(
   let template: RichTextTemplate | undefined;
   let useDirective = false;
   let directiveType = "leaf";
+  // Find the template for the element by name or match pattern
   template = parentField.templates?.find((template) => {
     if (typeof template === "string") {
       throw new Error("Global templates not supported");
@@ -69,10 +86,12 @@ export function stringifyProps(
   if (!template || typeof template === "string") {
     throw new Error(`Unable to find template for JSX element ${element.name}`);
   }
+  // If the template has a "children" field, treat as block directive
   if (template.fields.find((f) => f.name === "children")) {
     directiveType = "block";
   }
   useDirective = !!template.match;
+  // Process each prop according to its field type
   Object.entries(element.props).forEach(([name, value]) => {
     if (typeof template === "string") {
       throw new Error(`Unable to find template for JSX element ${name}`);
@@ -182,6 +201,7 @@ export function stringifyProps(
         }
         break;
       case "object":
+        // Recursively transform nested rich-text fields in objects
         const result = findAndTransformNestedRichText(
           field,
           value,
@@ -221,12 +241,14 @@ export function stringifyProps(
             `Nested rich-text element is not a valid shape for field ${field.name}`
           );
           if (field.name === "children") {
+            // If the field is "children", push its children to the output children array
             const root = rootElement(value, field, imageCallback);
             root.children.forEach((child) => {
               children.push(child);
             });
             return;
           } else {
+            // Otherwise, stringify the rich-text value as MDX
             const stringValue = stringifyMDX(value, field, imageCallback);
             if (stringValue) {
               val = stringValue
@@ -262,7 +284,7 @@ export function stringifyProps(
     }
   });
   if (template.match) {
-    // consistent mdx element rendering regardless of children makes it easier to parse
+    // Consistent mdx element rendering regardless of children makes it easier to parse
     return {
       useDirective,
       directiveType,
@@ -310,6 +332,9 @@ function stringifyObj(obj: unknown, flatten: boolean) {
   }
 }
 
+/**
+ * Asserts that a value matches a given shape, throws if not.
+ */
 export function assertShape<T>(
   value: unknown,
   callback: (item: any) => boolean,
@@ -320,6 +345,9 @@ export function assertShape<T>(
   }
 }
 
+/**
+ * Checks if a value is a plain object (not an array).
+ */
 function isPlainObject(value: unknown) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -392,6 +420,9 @@ const findAndTransformNestedRichText = (
   return value;
 };
 
+/**
+ * Checks if a value is a non-null object (not an array).
+ */
 function isObject(value: any): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

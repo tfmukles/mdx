@@ -4,14 +4,26 @@ import type { RichTextField } from "@/types";
 import type * as Md from "mdast";
 import { stringifyPropsInline } from "./jsx-attribute-processor";
 
+/**
+ * Helper to transform a Plate.InlineElement into Md.PhrasingContent.
+ * Used for cases where an inline element needs to be converted.
+ */
 const matches = (a: string[], b: string[]) => {
   return a.some((v) => b.includes(v));
 };
 
+/**
+ * Helper to transform a Plate.InlineElement into Md.PhrasingContent.
+ * Used for cases where an inline element needs to be converted.
+ */
 type InlineElementWithCallback = Plate.InlineElement & {
   linkifyTextNode?: (arg: Md.Text) => Md.Link;
 };
 
+/**
+ * Helper to transform a Plate.InlineElement into Md.PhrasingContent.
+ * Used for cases where an inline element needs to be converted.
+ */
 const replaceLinksWithTextNodes = (content: Plate.InlineElement[]) => {
   const newItems: InlineElementWithCallback[] = [];
   content?.forEach((item) => {
@@ -104,6 +116,10 @@ const inlineElementExceptLink = (
   }
 };
 
+/**
+ * Helper to transform a Plate.TextElement into Md.Text.
+ * Used for cases where a text element needs to be converted.
+ */
 const text = (content: { text: string }) => {
   return {
     type: "text" as const,
@@ -111,6 +127,10 @@ const text = (content: { text: string }) => {
   };
 };
 
+/**
+ * Helper to transform a Plate.InlineElement into Md.PhrasingContent.
+ * Used for cases where an inline element needs to be converted.
+ */
 export const eat = (
   c: InlineElementWithCallback[],
   field: RichTextField,
@@ -226,6 +246,11 @@ export const eat = (
   ];
 };
 
+/**
+ * Helper to clean up the node by removing the mark that was used to create it.
+ * This is necessary because the node may have been created with a mark that
+ * is not needed anymore.
+ */
 const cleanNode = (
   node: InlineElementWithCallback,
   mark: "strong" | "emphasis" | "inlineCode" | "delete" | null
