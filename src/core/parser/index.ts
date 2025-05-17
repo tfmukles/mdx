@@ -9,7 +9,7 @@ import { parseMDX as parseMDXNext } from "../../next";
 import { sitepinsDirective } from "../extensions/sitepins-shortcodes/directive-extension";
 import { directiveFromMarkdown } from "../extensions/sitepins-shortcodes/directive-from-markdown";
 import type { Pattern } from "../stringify";
-import { parseShortcode } from "./parsers/shortcodeParser";
+import { shortcodeParser } from "./parsers/shortcodeParser";
 import {
   remarkToSlate,
   RichTextParseError,
@@ -74,7 +74,7 @@ const preprocessTemplates = (value: string, field: RichTextType): string => {
       throw new Error("Global templates are not supported");
     }
     if (template.match && preprocessedString) {
-      preprocessedString = parseShortcode(preprocessedString, template);
+      preprocessedString = shortcodeParser(preprocessedString, template);
     }
   });
 

@@ -57,6 +57,7 @@ interface DirectiveContainerState {
  * });
  * ```
  */
+
 export const directiveContainer = (pattern: DirectivePattern): Construct => {
   const tokenizeDirectiveContainer: Tokenizer = function (effects, ook, nnok) {
     const self = this as unknown as CustomTokenizeContext & {

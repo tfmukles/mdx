@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseShortcode } from "../parsers/shortcodeParser";
+import { shortcodeParser } from "../parsers/shortcodeParser";
 
 describe("parseShortcode", () => {
   const baseTemplate = {
@@ -24,7 +24,7 @@ describe("parseShortcode", () => {
         ],
       };
 
-      const result = parseShortcode('{{< signature foo="bar123">}}', template);
+      const result = shortcodeParser('{{< signature foo="bar123">}}', template);
       expect(result).toEqual('<signature foo="bar123">\n</signature>');
     });
   });
@@ -42,7 +42,7 @@ describe("parseShortcode", () => {
         ],
       };
 
-      const result = parseShortcode('{{< signature "bar123" >}}', template);
+      const result = shortcodeParser('{{< signature "bar123" >}}', template);
       expect(result).toEqual('<signature _value="bar123">\n</signature>');
     });
   });
@@ -60,7 +60,7 @@ describe("parseShortcode", () => {
         ],
       };
 
-      const result = parseShortcode(
+      const result = shortcodeParser(
         "{{< signature >}}\n# FOO\n##Bar\n{{< /signature >}}",
         template
       );

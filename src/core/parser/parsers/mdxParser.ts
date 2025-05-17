@@ -5,67 +5,75 @@ import { ContainerDirective } from "mdast-util-directive";
 import { LeafDirective } from "mdast-util-directive/lib";
 import type { MdxJsxFlowElement, MdxJsxTextElement } from "mdast-util-mdx-jsx";
 import { source } from "unist-util-source";
+import { parseAttributesFromAst } from ".";
 import {
   remarkToSlate,
   RichTextParseError,
 } from "../transformers/remarkPlateConverter";
-import { extractAttributes } from "./attributeExtractor";
 
-function findTemplate(node: { name: string | null }, field: RichTextType) {
+// Find the template for a given node and field
+function getTemplateForNode(
+  node: { name: string | null },
+  field: RichTextType
+) {
   if (!node.name) return undefined;
 
-  const template = field.templates?.find((template) => {
+  const matchedTemplate = field.templates?.find((template) => {
     const templateName =
       typeof template === "string" ? template : template.name;
     return templateName === node.name;
   });
 
-  if (typeof template === "string") {
+  if (typeof matchedTemplate === "string") {
     throw new Error("Global templates not yet supported");
   }
 
-  return template;
+  return matchedTemplate;
 }
 
-function handleHtmlFallback(
+// Fallback handler for unknown HTML elements
+function fallbackToHtmlElement(
   node: MdxJsxTextElement | MdxJsxFlowElement,
   field: RichTextType
 ): Plate.HTMLElement | Plate.HTMLInlineElement {
   const string = toSitepinsMarkdown({ type: "root", children: [node] }, field);
   return {
-    type: node.type === "mdxJsxFlowElement" ? "html" : ("html_inline" as const),
+    type: node.type === "mdxJsxFlowElement" ? "html" : "html_inline",
     value: string.trim(),
     children: [{ type: "text", text: "" }],
   };
 }
 
-function handleChildren(
+// Handle children for a template field
+function transformTemplateChildren(
   node: any,
-  template: any,
-  childField: any,
+  matchedTemplate: any,
+  childrenField: any,
   imageCallback: any,
   raw?: string
 ) {
-  if (!childField || childField.type !== "rich-text") return;
+  if (!childrenField || childrenField.type !== "rich-text") return;
 
+  // Wrap children in a paragraph for inline elements
   if (node.type === "mdxJsxTextElement") {
     node.children = [{ type: "paragraph", children: node.children }];
   }
 
-  return remarkToSlate(node, childField, imageCallback, raw);
+  return remarkToSlate(node, childrenField, imageCallback, raw);
 }
 
-export function mdxJsxElement(
+// Main function to handle mdxJsxElement nodes
+export function transformMdxJsxElement(
   node: MdxJsxTextElement,
   field: RichTextType,
   imageCallback: (url: string) => string
 ): Plate.MdxInlineElement;
-export function mdxJsxElement(
+export function transformMdxJsxElement(
   node: MdxJsxFlowElement,
   field: RichTextType,
   imageCallback: (url: string) => string
 ): Plate.MdxBlockElement;
-export function mdxJsxElement(
+export function transformMdxJsxElement(
   node: MdxJsxTextElement | MdxJsxFlowElement,
   field: RichTextType,
   imageCallback: (url: string) => string
@@ -75,29 +83,30 @@ export function mdxJsxElement(
   | Plate.HTMLInlineElement
   | Plate.HTMLElement {
   try {
-    const template = findTemplate(node, field);
-    if (!template) {
-      return handleHtmlFallback(node, field);
+    const matchedTemplate = getTemplateForNode(node, field);
+    if (!matchedTemplate) {
+      return fallbackToHtmlElement(node, field);
     }
 
-    const props = extractAttributes(
+    // Extract props from node attributes and template fields
+    const elementProps = parseAttributesFromAst(
       node.attributes,
-      template.fields,
+      matchedTemplate.fields,
       imageCallback
     );
-    const childField = template.fields.find(
+    const childrenField = matchedTemplate.fields.find(
       (field) => field.name === "children"
     );
 
-    if (childField) {
-      const children = handleChildren(
+    if (childrenField) {
+      const children = transformTemplateChildren(
         node,
-        template,
-        childField,
+        matchedTemplate,
+        childrenField,
         imageCallback
       );
       if (children) {
-        props.children = children;
+        elementProps.children = children;
       }
     }
 
@@ -105,64 +114,73 @@ export function mdxJsxElement(
       type: node.type,
       name: node.name,
       children: [{ type: "text", text: "" }],
-      props,
+      props: elementProps,
     };
   } catch (e) {
     if (e instanceof Error) {
+      // Pass node position to error for better debugging
       throw new RichTextParseError(e.message, node.position);
     }
     throw e;
   }
 }
 
+// Handles directive elements (container or leaf)
 export const directiveElement = (
   node: ContainerDirective | LeafDirective,
   field: RichTextType,
   imageCallback: (url: string) => string,
   raw?: string
 ): Plate.BlockElement | Plate.ParagraphElement => {
-  let template = findTemplate(node, field);
+  let matchedTemplate = getTemplateForNode(node, field);
 
-  if (!template) {
-    template = field.templates?.find((template) => {
+  // Try to find template by match.name if not found by name
+  if (!matchedTemplate) {
+    matchedTemplate = field.templates?.find((template) => {
       const templateName = template?.match?.name;
       return templateName === node.name;
     });
   }
 
-  if (!template) {
+  if (!matchedTemplate) {
+    // Fallback to paragraph with raw source text
     return {
       type: "p",
       children: [{ type: "text", text: source(node, raw || "") || "" }],
     };
   }
 
-  if (typeof template === "string") {
+  if (typeof matchedTemplate === "string") {
     throw new Error(`Global templates not supported`);
   }
 
-  const props = (node.attributes || {}) as typeof node.attributes & {
-    children: Plate.RootElement | undefined;
+  // Use node attributes as props, add children if needed
+  const elementProps = {
+    ...(node.attributes || {}),
+  } as typeof node.attributes & {
+    children?: Plate.RootElement;
   };
 
-  const childField = template.fields.find((field) => field.name === "children");
-  if (childField && node.type === "containerDirective") {
-    const children = handleChildren(
+  const childrenField = matchedTemplate.fields.find(
+    (field) => field.name === "children"
+  );
+  if (childrenField && node.type === "containerDirective") {
+    const children = transformTemplateChildren(
       node,
-      template,
-      childField,
+      matchedTemplate,
+      childrenField,
       imageCallback,
       raw
     );
     if (children) {
-      props.children = children;
+      elementProps.children = children;
     }
   }
 
   return {
     type: "mdxJsxFlowElement",
-    name: template.name,
-    props: props,
+    name: matchedTemplate.name,
+    props: elementProps,
     children: [{ type: "text", text: "" }],
   };
 };

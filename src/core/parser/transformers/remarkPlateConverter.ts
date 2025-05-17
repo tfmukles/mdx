@@ -5,12 +5,13 @@ import type { ContainerDirective } from "mdast-util-directive";
 import type { MdxJsxFlowElement, MdxJsxTextElement } from "mdast-util-mdx-jsx";
 import type * as Plate from "../types/plateTypes";
 import {
-  directiveElement,
-  mdxJsxElement as mdxJsxElementDefault,
+  transformDirectiveElement,
+  transformMdxJsxElement,
 } from "./mdxElementTransformer";
 
 export type { Position, PositionItem } from "../types/plateTypes";
 
+// Extend mdast types for MDX support
 declare module "mdast" {
   interface StaticPhrasingContentMap {
     mdxJsxTextElement: MdxJsxTextElement;
@@ -18,7 +19,6 @@ declare module "mdast" {
   interface PhrasingContentMap {
     mdxJsxTextElement: MdxJsxTextElement;
   }
-
   interface BlockContentMap {
     mdxJsxFlowElement: MdxJsxFlowElement;
   }
@@ -27,11 +27,11 @@ declare module "mdast" {
   }
 }
 
-// Helper types for better type safety
+// Mark types for text formatting
 type MarkTypes = "strikethrough" | "bold" | "italic" | "code";
 type MarkProps = { [key in MarkTypes]?: boolean };
 
-// Helper functions
+// Create a Plate text element with optional marks
 const createTextElement = (
   text: string,
   markProps: MarkProps = {}
@@ -41,11 +41,13 @@ const createTextElement = (
   ...markProps,
 });
 
+// Create an empty Plate text element
 const createEmptyTextElement = (): Plate.EmptyTextElement => ({
   type: "text",
   text: "",
 });
 
+// Convert a table cell node to Plate format
 const processTableCell = (
   tableCell: Md.TableCell,
   phrasingContent: (
@@ -64,23 +66,9 @@ const processTableCell = (
 });
 
 /**
- * Converts a Markdown Abstract Syntax Tree (AST) node (from remark/MDX) into a Slate-compatible Plate document structure.
- *
- * @param root - The root node of the Markdown AST. Can be a standard Markdown root, an MDX JSX flow/text element, or a container directive.
- * @param field - The rich text field type, used for context in certain transformations.
- * @param imageCallback - A callback function to process image URLs before including them in the output.
- * @param raw - (Optional) The raw Markdown string, used for context in directive processing.
- * @param skipMDXProcess - (Optional) If true, skips the default MDX JSX element processing.
- * @returns The Plate-compatible root element representing the transformed document.
- *
- * @throws {RichTextParseError} If an unsupported or unexpected node type is encountered during transformation.
- *
- * @remarks
- * This function recursively traverses the Markdown AST and maps each node to its corresponding Plate element,
- * handling block elements (e.g., paragraphs, headings, lists, tables), inline elements (e.g., text, emphasis, links, images),
- * and MDX/HTML directives. It supports custom image URL processing and can be extended for additional node types.
+ * Converts a Markdown AST node (remark/MDX) into a Plate document structure.
+ * Handles block, inline, MDX, and directive nodes recursively.
  */
-
 export const remarkToSlate = (
   root: Md.Root | MdxJsxFlowElement | MdxJsxTextElement | ContainerDirective,
   field: RichTextType,
@@ -88,327 +76,311 @@ export const remarkToSlate = (
   raw?: string,
   skipMDXProcess?: boolean
 ): Plate.RootElement => {
+  // Use default MDX JSX element transformer unless skipping
   const mdxJsxElement = skipMDXProcess
     ? (node: any) => node
-    : mdxJsxElementDefault;
+    : transformMdxJsxElement;
 
-  const content = (content: Md.Content): Plate.BlockElement => {
-    switch (content.type) {
-      case "table": {
+  // Convert block-level content nodes
+  const content = (node: Md.Content): Plate.BlockElement => {
+    switch (node.type) {
+      case "table":
         return {
           type: "table",
-          children: content.children.map((tableRow) => ({
+          children: node.children.map((row) => ({
             type: "tr",
-            children: tableRow.children.map((tableCell) =>
-              processTableCell(tableCell, phrasingContent)
+            children: row.children.map((cell) =>
+              processTableCell(cell, phrasingContent)
             ),
           })),
           props: {
-            align: content.align?.filter(Boolean),
+            align: node.align?.filter(Boolean),
           },
         };
-      }
       case "blockquote":
-        const children: Plate.InlineElement[] = [];
-        content.children.map((child) => {
-          const inlineElements = unwrapBlockContent(child);
-          inlineElements.forEach((child) => {
-            children.push(child);
-          });
-        });
-        return {
-          type: "blockquote",
-          children,
-        };
+        return blockquote(node);
       case "heading":
-        return heading(content);
+        return heading(node);
       case "code":
-        return parseCode(content);
+        return parseCode(node);
       case "paragraph":
-        return paragraph(content);
+        return paragraph(node);
       case "mdxJsxFlowElement":
-        return mdxJsxElement(content, field, imageCallback);
+        return mdxJsxElement(node, field, imageCallback);
       case "thematicBreak":
         return {
           type: "hr",
-          children: [{ type: "text", text: "" }],
+          children: [createEmptyTextElement()],
         };
       case "listItem":
-        return listItem(content);
+        return listItem(node);
       case "list":
-        return list(content);
+        return list(node);
       case "html":
-        return html(content);
+        return html(node);
+      // MDX expressions and ESM are not supported
       // @ts-ignore
       case "mdxFlowExpression":
       // @ts-ignore
       case "mdxjsEsm":
-        // @ts-ignore
         throw new RichTextParseError(
           // @ts-ignore
-          `Unexpected expression ${content.value}.`,
+          `Unexpected expression ${node.value}.`,
           // @ts-ignore
-          content.position
+          node.position
         );
-      case "leafDirective": {
-        return directiveElement(content, field, imageCallback, raw);
-      }
-      case "containerDirective": {
-        return directiveElement(content, field, imageCallback, raw);
-      }
+      case "leafDirective":
+      case "containerDirective":
+        return transformDirectiveElement(node, field, imageCallback, raw);
       default:
         throw new RichTextParseError(
-          `Content: ${content.type} is not yet supported`,
+          `Content: ${node.type} is not yet supported`,
           // @ts-ignore
-          content.position
+          node.position
         );
     }
   };
 
-  const html = (content: Md.HTML): Plate.HTMLElement => ({
+  // Convert HTML block node
+  const html = (node: Md.HTML): Plate.HTMLElement => ({
     type: "html",
-    value: content.value,
+    value: node.value,
     children: [createEmptyTextElement()],
   });
 
-  const html_inline = (content: Md.HTML): Plate.HTMLInlineElement => ({
+  // Convert HTML inline node
+  const htmlInline = (node: Md.HTML): Plate.HTMLInlineElement => ({
     type: "html_inline",
-    value: content.value,
+    value: node.value,
     children: [createEmptyTextElement()],
   });
 
-  const list = (content: Md.List): Plate.List => ({
-    type: content.ordered ? "ol" : "ul",
-    children: content.children.map(listItem),
+  // Convert list node
+  const list = (node: Md.List): Plate.List => ({
+    type: node.ordered ? "ol" : "ul",
+    children: node.children.map(listItem),
   });
 
-  const listItem = (content: Md.ListItem): Plate.ListItemElement => {
-    return {
-      type: "li",
-      // @ts-ignore
-      children: content.children.map((child) => {
-        switch (child.type) {
-          case "list":
-            return list(child);
-          case "heading":
-          case "paragraph":
-            return {
-              type: "lic",
-              children: flatten(
-                child.children.map((child) => phrasingContent(child))
+  // Convert list item node
+  const listItem = (node: Md.ListItem): Plate.ListItemElement => ({
+    type: "li",
+    children: node.children.map((child) => {
+      switch (child.type) {
+        case "list":
+          return list(child);
+        case "heading":
+        case "paragraph":
+          return {
+            type: "lic",
+            children: flatten(child.children.map((c) => phrasingContent(c))),
+          };
+        case "blockquote":
+          return {
+            ...blockquote(child),
+            type: "lic",
+          };
+        case "mdxJsxFlowElement":
+          return {
+            type: "lic",
+            children: [
+              // Treat as inline element in list item
+              // @ts-ignore
+              mdxJsxElement(
+                { ...child, type: "mdxJsxTextElement" as const },
+                field,
+                imageCallback
               ),
-            };
-          case "blockquote": {
-            return {
-              ...blockquote(child),
-              type: "lic",
-            };
+            ],
+          };
+        case "html":
+          return {
+            type: "lic",
+            children: [htmlInline(child)],
+          };
+        case "leafDirective":
+          return {
+            type: "lic",
+            children: [transformDirectiveElement(child, field, imageCallback)],
+          };
+        case "code":
+        case "thematicBreak":
+        case "table":
+          throw new RichTextParseError(
+            `${child.type} inside list item is not supported`,
+            child.position
+          );
+        default:
+          let position: Plate.Position | undefined;
+          if (child.type !== "containerDirective") {
+            position = child.position;
           }
-          case "mdxJsxFlowElement":
-            return {
-              type: "lic",
-              children: [
-                // @ts-ignore casting a flow element to a paragraph
-                mdxJsxElement(
-                  { ...child, type: "mdxJsxTextElement" as const },
-                  field,
-                  imageCallback
-                ),
-              ],
-            };
-          case "html":
-            return {
-              type: "lic",
-              children: [html_inline(child)],
-            };
-          case "leafDirective": {
-            return {
-              type: "lic",
-              children: [directiveElement(child, field, imageCallback)],
-            };
-          }
-          case "code":
-          case "thematicBreak":
-          case "table":
-            throw new RichTextParseError(
-              `${child.type} inside list item is not supported`,
-              child.position
-            );
-          default:
-            let position: Plate.Position | undefined;
-            if (child.type !== "containerDirective") {
-              position = child.position;
-            }
-            throw new RichTextParseError(
-              `Unknown list item of type ${child.type}`,
-              position
-            );
-        }
-      }),
-    };
-  };
+          throw new RichTextParseError(
+            `Unknown list item of type ${child.type}`,
+            position
+          );
+      }
+    }),
+  });
 
+  // Unwrap block content to inline elements (for blockquotes, etc.)
   const unwrapBlockContent = (
-    content: Md.BlockContent | Md.DefinitionContent
+    node: Md.BlockContent | Md.DefinitionContent
   ): Plate.InlineElement[] => {
     const flattenPhrasingContent = (
       children: Md.PhrasingContent[]
     ): Plate.LicElement[] => {
-      const children2 = children.map((child) => phrasingContent(child));
-      return flatten(Array.isArray(children2) ? children2 : [children2]);
+      const mapped = children.map((child) => phrasingContent(child));
+      return flatten(Array.isArray(mapped) ? mapped : [mapped]);
     };
-    switch (content.type) {
+
+    switch (node.type) {
       case "heading":
       case "paragraph":
-        return flattenPhrasingContent(content.children);
-      /**
-       * Eg.
-       * >>> my content
-       */
+        return flattenPhrasingContent(node.children);
       case "html":
-        return [html_inline(content)];
-      case "blockquote":
-      // TODO
+        return [htmlInline(node)];
       default:
         throw new RichTextParseError(
+          `UnwrapBlock: Unknown block content of type ${node.type}`,
           // @ts-ignore
-          `UnwrapBlock: Unknown block content of type ${content.type}`,
-          // @ts-ignore
-          content.position
+          node.position
         );
     }
   };
 
+  // Parse code block or mermaid block
   const parseCode = (
-    content: Md.Code
+    node: Md.Code
   ): Plate.CodeBlockElement | Plate.MermaidElement => {
-    if (content.lang === "mermaid") {
-      return mermaid(content);
+    if (node.lang === "mermaid") {
+      return mermaid(node);
     }
-    return code(content);
+    return code(node);
   };
 
-  const mermaid = (content: Md.Code): Plate.MermaidElement => {
-    return {
-      type: "mermaid",
-      value: content.value,
-      children: [{ type: "text", text: "" }],
-    };
-  };
+  // Convert mermaid code block
+  const mermaid = (node: Md.Code): Plate.MermaidElement => ({
+    type: "mermaid",
+    value: node.value,
+    children: [createEmptyTextElement()],
+  });
 
-  const code = (content: Md.Code): Plate.CodeBlockElement => {
+  // Convert code block
+  const code = (node: Md.Code): Plate.CodeBlockElement => {
     const extra: Record<string, string> = {};
-    if (content.lang) extra["lang"] = content.lang;
+    if (node.lang) extra["lang"] = node.lang;
     return {
       type: "code_block",
       ...extra,
-      value: content.value,
-      children: [{ type: "text", text: "" }],
+      value: node.value,
+      children: [createEmptyTextElement()],
     };
   };
-  const link = (content: Md.Link): Plate.LinkElement => {
-    return {
-      type: "a",
-      url: sanitizeUrl(content.url),
-      title: content.title,
-      children: flatten(
-        content.children.map((child) => staticPhrasingContent(child))
-      ),
-    };
-  };
-  const heading = (content: Md.Heading): Plate.HeadingElement => {
-    return {
-      type: ["h1", "h2", "h3", "h4", "h5", "h6"][
-        content.depth - 1
-      ] as Plate.HeadingElement["type"],
-      children: flatten(content.children.map(phrasingContent)),
-    };
-  };
+
+  // Convert link node
+  const link = (node: Md.Link): Plate.LinkElement => ({
+    type: "a",
+    url: sanitizeUrl(node.url),
+    title: node.title,
+    children: flatten(
+      node.children.map((child) => staticPhrasingContent(child))
+    ),
+  });
+
+  // Convert heading node
+  const heading = (node: Md.Heading): Plate.HeadingElement => ({
+    type: ["h1", "h2", "h3", "h4", "h5", "h6"][
+      node.depth - 1
+    ] as Plate.HeadingElement["type"],
+    children: flatten(node.children.map(phrasingContent)),
+  });
+
+  // Convert static phrasing content (no nested links)
   const staticPhrasingContent = (
-    content: Md.StaticPhrasingContent
+    node: Md.StaticPhrasingContent
   ): Plate.InlineElement | Plate.InlineElement[] => {
-    switch (content.type) {
+    switch (node.type) {
       case "mdxJsxTextElement":
-        return mdxJsxElement(content, field, imageCallback);
+        return mdxJsxElement(node, field, imageCallback);
       case "text":
-        return text(content);
+        return text(node);
       case "inlineCode":
       case "emphasis":
       case "image":
       case "strong":
-        return phrashingMark(content);
+        return phrasingMark(node);
       case "html":
-        return html_inline(content);
+        return htmlInline(node);
       default:
         throw new Error(
-          `StaticPhrasingContent: ${content.type} is not yet supported`
+          `StaticPhrasingContent: ${node.type} is not yet supported`
         );
     }
   };
+
+  // Convert phrasing content (inline elements)
   const phrasingContent = (
-    content: Md.PhrasingContent
+    node: Md.PhrasingContent
   ): Plate.InlineElement | Plate.InlineElement[] => {
-    switch (content.type) {
+    switch (node.type) {
       case "text":
-        return text(content);
+        return text(node);
       case "delete":
-        return phrashingMark(content);
+        return phrasingMark(node);
       case "link":
-        return link(content);
+        return link(node);
       case "image":
-        return image(content);
+        return image(node);
       case "mdxJsxTextElement":
-        return mdxJsxElement(content, field, imageCallback);
+        return mdxJsxElement(node, field, imageCallback);
       case "emphasis":
-        return phrashingMark(content);
       case "strong":
-        return phrashingMark(content);
+        return phrasingMark(node);
       case "break":
-        return breakContent();
+        return breakElement();
       case "inlineCode":
-        return phrashingMark(content);
+        return phrasingMark(node);
       case "html":
-        return html_inline(content);
+        return htmlInline(node);
       // @ts-ignore
       case "mdxTextExpression":
         throw new RichTextParseError(
           // @ts-ignore
-          `Unexpected expression ${content.value}.`,
+          `Unexpected expression ${node.value}.`,
           // @ts-ignore
-          content.position
+          node.position
         );
       default:
-        throw new Error(
-          `PhrasingContent: ${content.type} is not yet supported`
-        );
+        throw new Error(`PhrasingContent: ${node.type} is not yet supported`);
     }
   };
-  const breakContent = (): Plate.BreakElement => ({
+
+  // Create a Plate break element
+  const breakElement = (): Plate.BreakElement => ({
     type: "break",
     children: [createEmptyTextElement()],
   });
 
-  const phrashingMark = (
+  // Recursively apply marks to phrasing content
+  const phrasingMark = (
     node: Md.PhrasingContent,
-    marks: ("strikethrough" | "bold" | "italic" | "code")[] = []
+    marks: MarkTypes[] = []
   ): Plate.InlineElement[] => {
-    const accum: Plate.InlineElement[] = [];
+    const result: Plate.InlineElement[] = [];
     switch (node.type) {
       case "emphasis": {
         const children = flatten(
           node.children.map((child) =>
-            phrashingMark(child, [...marks, "italic"])
+            phrasingMark(child, [...marks, "italic"])
           )
         );
-        children.forEach((child) => {
-          accum.push(child);
-        });
+        result.push(...children);
         break;
       }
       case "inlineCode": {
-        const markProps: { [key: string]: boolean } = {};
+        const markProps: MarkProps = {};
         marks.forEach((mark) => (markProps[mark] = true));
-        accum.push({
+        result.push({
           type: "text",
           text: node.value,
           code: true,
@@ -419,33 +391,28 @@ export const remarkToSlate = (
       case "delete": {
         const children = flatten(
           node.children.map((child) =>
-            phrashingMark(child, [...marks, "strikethrough"])
+            phrasingMark(child, [...marks, "strikethrough"])
           )
         );
-        children.forEach((child) => {
-          accum.push(child);
-        });
+        result.push(...children);
         break;
       }
-
       case "strong": {
         const children = flatten(
-          node.children.map((child) => phrashingMark(child, [...marks, "bold"]))
+          node.children.map((child) => phrasingMark(child, [...marks, "bold"]))
         );
-        children.forEach((child) => {
-          accum.push(child);
-        });
+        result.push(...children);
         break;
       }
       case "image": {
-        accum.push(image(node));
+        result.push(image(node));
         break;
       }
       case "link": {
         const children = flatten(
-          node.children.map((child) => phrashingMark(child, marks))
+          node.children.map((child) => phrasingMark(child, marks))
         );
-        accum.push({
+        result.push({
           type: "a",
           url: sanitizeUrl(node.url),
           title: node.title,
@@ -453,46 +420,45 @@ export const remarkToSlate = (
         });
         break;
       }
-      case "text":
-        const markProps: { [key: string]: boolean } = {};
+      case "text": {
+        const markProps: MarkProps = {};
         marks.forEach((mark) => (markProps[mark] = true));
-        accum.push({ type: "text", text: node.value, ...markProps });
+        result.push({ type: "text", text: node.value, ...markProps });
         break;
-      /**
-       * Eg. this is a line break
-       *                 vv
-       * _Some italicized
-       * text on 2 lines_
-       */
+      }
       case "break":
-        accum.push(breakContent());
+        result.push(breakElement());
         break;
       default:
-        // throw new Error(`Unexpected inline element of type ${node.type}`)
         throw new RichTextParseError(
           `Unexpected inline element of type ${node.type}`,
           // @ts-ignore
           node?.position
         );
     }
-    return accum;
+    return result;
   };
 
-  const image = (content: Md.Image): Plate.ImageElement => ({
+  // Convert image node
+  const image = (node: Md.Image): Plate.ImageElement => ({
     type: "img",
-    url: imageCallback(content.url),
-    alt: content.alt || undefined,
-    caption: content.title,
+    url: imageCallback(node.url),
+    alt: node.alt || undefined,
+    caption: node.title,
     children: [createEmptyTextElement()],
   });
-  const text = (content: Md.Text): Plate.TextElement =>
-    createTextElement(content.value);
-  const blockquote = (content: Md.Blockquote): Plate.BlockquoteElement => {
+
+  // Convert text node
+  const text = (node: Md.Text): Plate.TextElement =>
+    createTextElement(node.value);
+
+  // Convert blockquote node
+  const blockquote = (node: Md.Blockquote): Plate.BlockquoteElement => {
     const children: Plate.InlineElement[] = [];
-    content.children.map((child) => {
+    node.children.forEach((child) => {
       const inlineElements = unwrapBlockContent(child);
-      inlineElements.forEach((child) => {
-        children.push(child);
+      inlineElements.forEach((el) => {
+        children.push(el);
       });
     });
     return {
@@ -500,22 +466,17 @@ export const remarkToSlate = (
       children,
     };
   };
+
+  // Convert paragraph node, handle inline HTML as block HTML
   const paragraph = (
-    content: Md.Paragraph
+    node: Md.Paragraph
   ): Plate.ParagraphElement | Plate.HTMLElement => {
-    const children = flatten(content.children.map(phrasingContent));
-    // MDX treats <div>Hello</div> is inline even if it's isolated on one line
-    // If that's the case, swap it out with html
-    // TODO: probably need to do the same with JSX
-    if (children.length === 1) {
-      if (children[0]) {
-        if (children[0].type === "html_inline") {
-          return {
-            ...children[0],
-            type: "html",
-          };
-        }
-      }
+    const children = flatten(node.children.map(phrasingContent));
+    if (children.length === 1 && children[0]?.type === "html_inline") {
+      return {
+        ...children[0],
+        type: "html",
+      };
     }
     return {
       type: "p",
@@ -523,18 +484,20 @@ export const remarkToSlate = (
     };
   };
 
+  // Main conversion: map all root children
   return {
     type: "root",
     children: root.children.map((child) => content(child as Md.Content)),
   };
 };
 
-// URL sanitization helper
+// Allowed URL schemes for sanitization
 const isAllowedScheme = (scheme: string): boolean => {
   const allowedSchemes = ["http", "https", "mailto", "tel", "xref"];
   return allowedSchemes.includes(scheme);
 };
 
+// Sanitize URLs to prevent XSS and invalid protocols
 export const sanitizeUrl = (url: string | undefined): string => {
   if (!url) return "";
 
@@ -562,6 +525,7 @@ export const sanitizeUrl = (url: string | undefined): string => {
   return parsedUrl.href;
 };
 
+// Custom error for rich text parsing
 export class RichTextParseError extends Error {
   public position?: Plate.Position;
 

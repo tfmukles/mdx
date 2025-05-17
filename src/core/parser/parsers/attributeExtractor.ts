@@ -17,92 +17,90 @@ interface AttributeExtractorContext {
   imageCallback: (image: string) => string;
 }
 
-class AttributeExtractor {
+class AttributeParser {
   private context: AttributeExtractorContext;
 
   constructor(context: AttributeExtractorContext) {
     this.context = context;
   }
 
-  extractAttributes(
+  parseAttributes(
     attributes: (MdxJsxAttribute | MdxJsxExpressionAttribute)[],
     fields: Field[]
   ) {
-    const properties: Record<string, unknown> = {};
+    const result: Record<string, unknown> = {};
 
-    attributes?.forEach((attribute) => {
-      this.assertType(attribute, "mdxJsxAttribute");
-      const field = fields.find((field) => field.name === attribute.name);
+    attributes?.forEach((attr) => {
+      this.assertType(attr, "mdxJsxAttribute");
+      const fieldDef = fields.find((f) => f.name === attr.name);
 
-      if (!field) {
+      if (!fieldDef) {
         throw new Error(
-          `Unable to find field definition for property "${attribute.name}"`
+          `Unable to find field definition for property "${attr.name}"`
         );
       }
 
       try {
-        properties[attribute.name] = this.extractAttribute(attribute, field);
+        result[attr.name] = this.parseAttribute(attr, fieldDef);
       } catch (e) {
         if (e instanceof Error) {
           throw new Error(
-            `Unable to parse field value for field "${field.name}" (type: ${field.type}). ${e.message}`
+            `Unable to parse field value for field "${fieldDef.name}" (type: ${fieldDef.type}). ${e.message}`
           );
         }
         throw e;
       }
     });
 
-    return properties;
+    return result;
   }
 
-  private extractAttribute(attribute: MdxJsxAttribute, field: Field) {
+  private parseAttribute(attribute: MdxJsxAttribute, field: Field) {
     switch (field.type) {
       case "boolean":
       case "number":
-        return this.extractScalar(this.extractExpression(attribute), field);
+        return this.parseScalar(this.parseExpression(attribute), field);
 
       case "datetime":
       case "string":
         if (field.list) {
-          return this.extractScalar(this.extractExpression(attribute), field);
+          return this.parseScalar(this.parseExpression(attribute), field);
         }
-        return this.extractString(attribute, field);
+        return this.parseString(attribute, field);
 
       case "image":
         if (field.list) {
-          const values = this.extractScalar(
-            this.extractExpression(attribute),
+          const values = this.parseScalar(
+            this.parseExpression(attribute),
             field
           ) as string;
           return values.split(",").map(this.context.imageCallback);
         }
-        const value = this.extractString(attribute, field);
+        const value = this.parseString(attribute, field);
         return this.context.imageCallback(value);
 
       case "reference":
         if (field.list) {
-          return this.extractScalar(this.extractExpression(attribute), field);
+          return this.parseScalar(this.parseExpression(attribute), field);
         }
-        return this.extractString(attribute, field);
+        return this.parseString(attribute, field);
 
       case "object":
-        return this.extractObject(this.extractExpression(attribute), field);
+        return this.parseObject(this.parseExpression(attribute), field);
 
       case "rich-text":
-        const JSXString = this.extractRaw(attribute);
-        if (JSXString) {
-          return parseMDX(JSXString, field, this.context.imageCallback);
+        const jsxString = this.parseRaw(attribute);
+        if (jsxString) {
+          return parseMDX(jsxString, field, this.context.imageCallback);
         }
         return {};
 
       default:
-        throw new Error(
-          `Extract attribute: Unhandled field type ${field.type}`
-        );
+        throw new Error(`Parse attribute: Unhandled field type ${field.type}`);
     }
   }
 
-  private extractScalar<
+  private parseScalar<
     T extends Extract<
       Field,
       | { type: "string" }
@@ -112,50 +110,50 @@ class AttributeExtractor {
       | { type: "image" }
       | { type: "reference" }
     >
-  >(attribute: ExpressionStatement, field: T) {
+  >(exprStmt: ExpressionStatement, field: T) {
     if (field.list) {
-      this.assertType(attribute.expression, "ArrayExpression");
-      return attribute.expression.elements.map((element) => {
-        this.assertHasType(element);
-        this.assertType(element, "Literal");
-        return element.value;
+      this.assertType(exprStmt.expression, "ArrayExpression");
+      return exprStmt.expression.elements.map((el) => {
+        this.assertHasType(el);
+        this.assertType(el, "Literal");
+        return el.value;
       });
     }
 
-    this.assertType(attribute.expression, "Literal");
-    return attribute.expression.value;
+    this.assertType(exprStmt.expression, "Literal");
+    return exprStmt.expression.value;
   }
 
-  private extractObject<T extends Extract<Field, { type: "object" }>>(
-    attribute: ExpressionStatement,
+  private parseObject<T extends Extract<Field, { type: "object" }>>(
+    exprStmt: ExpressionStatement,
     field: T
   ) {
     if (field.list) {
-      this.assertType(attribute.expression, "ArrayExpression");
-      return attribute.expression.elements.map((element) => {
-        this.assertHasType(element);
-        this.assertType(element, "ObjectExpression");
-        return this.extractObjectExpression(element, field);
+      this.assertType(exprStmt.expression, "ArrayExpression");
+      return exprStmt.expression.elements.map((el) => {
+        this.assertHasType(el);
+        this.assertType(el, "ObjectExpression");
+        return this.parseObjectExpression(el, field);
       });
     }
 
-    this.assertType(attribute.expression, "ObjectExpression");
-    return this.extractObjectExpression(attribute.expression, field);
+    this.assertType(exprStmt.expression, "ObjectExpression");
+    return this.parseObjectExpression(exprStmt.expression, field);
   }
 
-  private extractObjectExpression(
-    expression: ObjectExpression,
+  private parseObjectExpression(
+    objExpr: ObjectExpression,
     field: Extract<Field, { type: "object" }>
   ) {
-    const properties: Record<string, unknown> = {};
+    const result: Record<string, unknown> = {};
 
-    expression.properties?.forEach((property) => {
-      this.assertType(property, "Property");
-      const { key, value } = this.extractKeyValue(property, field);
-      properties[key] = value;
+    objExpr.properties?.forEach((prop) => {
+      this.assertType(prop, "Property");
+      const { key, value } = this.parseKeyValue(prop, field);
+      result[key] = value;
     });
 
-    return properties;
+    return result;
   }
 
   private getField(
@@ -170,43 +168,43 @@ class AttributeExtractor {
     }
   }
 
-  private extractKeyValue(
-    property: Property,
+  private parseKeyValue(
+    prop: Property,
     parentField: Extract<Field, { type: "object" }>
   ) {
-    this.assertType(property.key, "Identifier");
-    const key = property.key.name;
+    this.assertType(prop.key, "Identifier");
+    const key = prop.key.name;
     const field = this.getField(parentField, key);
 
     if (field?.type === "object") {
       if (field.list) {
-        this.assertType(property.value, "ArrayExpression");
-        const value = property.value.elements.map((element) => {
-          this.assertHasType(element);
-          this.assertType(element, "ObjectExpression");
-          return this.extractObjectExpression(element, field);
+        this.assertType(prop.value, "ArrayExpression");
+        const value = prop.value.elements.map((el) => {
+          this.assertHasType(el);
+          this.assertType(el, "ObjectExpression");
+          return this.parseObjectExpression(el, field);
         });
         return { key, value };
       }
 
-      this.assertType(property.value, "ObjectExpression");
-      const value = this.extractObjectExpression(property.value, field);
+      this.assertType(prop.value, "ObjectExpression");
+      const value = this.parseObjectExpression(prop.value, field);
       return { key, value };
     }
 
     if (field?.list) {
-      this.assertType(property.value, "ArrayExpression");
-      const value = property.value.elements.map((element) => {
-        this.assertHasType(element);
-        this.assertType(element, "Literal");
-        return element.value;
+      this.assertType(prop.value, "ArrayExpression");
+      const value = prop.value.elements.map((el) => {
+        this.assertHasType(el);
+        this.assertType(el, "Literal");
+        return el.value;
       });
       return { key, value };
     }
 
     if (field?.type === "rich-text") {
-      this.assertType(property.value, "Literal");
-      const raw = property.value.value;
+      this.assertType(prop.value, "Literal");
+      const raw = prop.value.value;
       if (typeof raw === "string") {
         return {
           key,
@@ -216,14 +214,14 @@ class AttributeExtractor {
       throw new Error(`Unable to parse rich-text`);
     }
 
-    this.assertType(property.value, "Literal");
-    return { key, value: property.value.value };
+    this.assertType(prop.value, "Literal");
+    return { key, value: prop.value.value };
   }
 
-  private extractStatement(
-    attribute: MdxJsxAttributeValueExpression
+  private parseStatement(
+    attrExpr: MdxJsxAttributeValueExpression
   ): ExpressionStatement {
-    const body = attribute.data?.estree?.body;
+    const body = attrExpr.data?.estree?.body;
     if (body?.[0]) {
       this.assertType(body[0], "ExpressionStatement");
       return body[0] as unknown as ExpressionStatement;
@@ -232,27 +230,24 @@ class AttributeExtractor {
     throw new Error(`Unable to extract body from expression`);
   }
 
-  private extractString(attribute: MdxJsxAttribute, field: StringField) {
+  private parseString(attribute: MdxJsxAttribute, field: StringField) {
     if (
       attribute.type === "mdxJsxAttribute" &&
       typeof attribute.value === "string"
     ) {
       return attribute.value;
     }
-    return this.extractScalar(
-      this.extractExpression(attribute),
-      field
-    ) as string;
+    return this.parseScalar(this.parseExpression(attribute), field) as string;
   }
 
-  private extractExpression(attribute: MdxJsxAttribute): ExpressionStatement {
+  private parseExpression(attribute: MdxJsxAttribute): ExpressionStatement {
     this.assertType(attribute, "mdxJsxAttribute");
     this.assertHasType(attribute.value);
     this.assertType(attribute.value, "mdxJsxAttributeValueExpression");
-    return this.extractStatement(attribute.value);
+    return this.parseStatement(attribute.value);
   }
 
-  private extractRaw(attribute: MdxJsxAttribute): string {
+  private parseRaw(attribute: MdxJsxAttribute): string {
     this.assertType(attribute, "mdxJsxAttribute");
     this.assertHasType(attribute.value);
     this.assertType(attribute.value, "mdxJsxAttributeValueExpression");
@@ -280,22 +275,22 @@ class AttributeExtractor {
   }
 }
 
-export const extractAttributes = (
+export const parseAttributesFromAst = (
   attributes: (MdxJsxAttribute | MdxJsxExpressionAttribute)[],
   fields: Field[],
   imageCallback: (image: string) => string
 ) => {
-  const extractor = new AttributeExtractor({ imageCallback });
-  return extractor.extractAttributes(attributes, fields);
+  const extractor = new AttributeParser({ imageCallback });
+  return extractor.parseAttributes(attributes, fields);
 };
 
-export const trimFragments = (string: string) => {
-  const lines = string.split("\n");
+export const trimFragments = (input: string) => {
+  const lines = input.split("\n");
   const openIndex = lines.findIndex((line) => line.trim() === "<>");
   const closeIndex = lines.reverse().findIndex((line) => line.trim() === "</>");
 
   if (openIndex === -1 || closeIndex === -1) {
-    return string;
+    return input;
   }
 
   return lines
