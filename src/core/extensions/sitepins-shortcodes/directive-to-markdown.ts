@@ -98,43 +98,66 @@ const handleContainerContent = ({
 };
 
 // Main handler for converting directives to markdown using provided patterns
-const handleDirective =
-  (patterns: DirectivePattern[]): ExtendedToMarkdownHandle =>
-  (node, _, state, safeOptions) => {
-    const tracker = track(safeOptions);
-    const exit = state.enter(node.type);
+const createDirectiveMarkdownHandler =
+  (directivePatterns: DirectivePattern[]): ExtendedToMarkdownHandle =>
+  (directiveNode, _, markdownState, safeOptions) => {
+    const positionTracker = track(safeOptions);
+    const exitDirective = markdownState.enter(directiveNode.type);
 
-    const pattern = patterns.find(
-      (p) => p.name === node.name || p.templateName === node.name
+    const matchedPattern = directivePatterns.find(
+      (pattern) =>
+        pattern.name === directiveNode.name ||
+        pattern.templateName === directiveNode.name
     );
 
-    if (!pattern) {
-      console.warn("No pattern found for directive:", node.name);
-      exit();
+    if (!matchedPattern) {
+      console.warn("No pattern found for directive:", directiveNode.name);
+      exitDirective();
       return "";
     }
 
-    const patternName = getPatternName(pattern.name, pattern.templateName);
-    let value = tracker.move(`${pattern.start} ${patternName}`);
+    const resolvedPatternName = getPatternName(
+      matchedPattern.name,
+      matchedPattern.templateName
+    );
+    let markdownValue = positionTracker.move(
+      `${matchedPattern.start} ${resolvedPatternName}`
+    );
 
-    value = handleLabel({ node, pattern, state, tracker, value });
-    value += tracker.move(" ");
-    value += tracker.move(formatAttributes(node, state));
-    value += tracker.move(pattern.end);
+    markdownValue = handleLabel({
+      node: directiveNode,
+      pattern: matchedPattern,
+      state: markdownState,
+      tracker: positionTracker,
+      value: markdownValue,
+    });
+    markdownValue += positionTracker.move(" ");
+    markdownValue += positionTracker.move(
+      formatAttributes(directiveNode, markdownState)
+    );
+    markdownValue += positionTracker.move(matchedPattern.end);
 
-    value = handleContainerContent({ node, pattern, state, tracker, value });
+    markdownValue = handleContainerContent({
+      node: directiveNode,
+      pattern: matchedPattern,
+      state: markdownState,
+      tracker: positionTracker,
+      value: markdownValue,
+    });
 
-    if (node.type === DirectiveTypes.CONTAINER) {
-      value += tracker.move(`\n${pattern.start}`);
-      value += tracker.move(` /${patternName} ${pattern.end}`);
+    if (directiveNode.type === DirectiveTypes.CONTAINER) {
+      markdownValue += positionTracker.move(`\n${matchedPattern.start}`);
+      markdownValue += positionTracker.move(
+        ` /${resolvedPatternName} ${matchedPattern.end}`
+      );
     }
 
-    exit();
-    return value;
+    exitDirective();
+    return markdownValue;
   };
 
-// Exports the directiveToMarkdown extension for mdast-util-to-markdown
-export const directiveToMarkdown = (
+// Exports the sitepinsShortcodesToMarkdown extension for mdast-util-to-markdown
+export const sitepinsShortcodesToMarkdown = (
   patterns: DirectivePattern[]
 ): ToMarkdownExtension => ({
   unsafe: [
@@ -155,8 +178,8 @@ export const directiveToMarkdown = (
     { atBreak: true, character: ":", after: ":" },
   ],
   handlers: {
-    [DirectiveTypes.CONTAINER]: handleDirective(patterns),
-    [DirectiveTypes.LEAF]: handleDirective(patterns),
-    [DirectiveTypes.TEXT]: handleDirective(patterns),
+    [DirectiveTypes.CONTAINER]: createDirectiveMarkdownHandler(patterns),
+    [DirectiveTypes.LEAF]: createDirectiveMarkdownHandler(patterns),
+    [DirectiveTypes.TEXT]: createDirectiveMarkdownHandler(patterns),
   },
 });

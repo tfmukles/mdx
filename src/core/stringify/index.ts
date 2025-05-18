@@ -14,7 +14,7 @@ import {
 import { Handlers, toMarkdown } from "mdast-util-to-markdown";
 import { text as handleText } from "mdast-util-to-markdown/lib/handle/text";
 import { stringifyMDX as stringifyMDXNext } from "../../next";
-import { directiveToMarkdown } from "../extensions/sitepins-shortcodes/directive-to-markdown";
+import { sitepinsShortcodesToMarkdown } from "../extensions/sitepins-shortcodes/directive-to-markdown";
 import type * as Plate from "../parser/types/plateTypes";
 import { processInlineNodes as serializeInlineElements } from "./markdownMarksHandler";
 import { serializeProps as serializeMdxProps } from "./mdxAttributeSerializer";
@@ -126,7 +126,7 @@ export const convertToSitepinsMarkdown = (
   };
   return toMarkdown(mdastTree, {
     extensions: [
-      directiveToMarkdown(shortcodePatterns),
+      sitepinsShortcodesToMarkdown(shortcodePatterns),
       mdxJsxToMarkdown(),
       gfmToMarkdown(),
     ],

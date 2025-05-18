@@ -5,7 +5,7 @@ import { mdxJsxToMarkdown } from "mdast-util-mdx-jsx";
 import { Handlers, toMarkdown } from "mdast-util-to-markdown";
 import { text } from "mdast-util-to-markdown/lib/handle/text";
 import { stringifyMDX as stringifyMDXLegacy } from "../../../next";
-import { directiveToMarkdown } from "../../extensions/sitepins-shortcodes/directive-to-markdown";
+import { sitepinsShortcodesToMarkdown } from "../../extensions/sitepins-shortcodes/directive-to-markdown";
 import type * as Plate from "../../parser/types/plateTypes";
 import { Pattern } from "../types";
 import { stringifyShortcode } from "../utils/index";
@@ -111,7 +111,7 @@ export const mdastToSitepinsMarkdown = (
   // Serialize MDAST to markdown with extensions
   return toMarkdown(mdast, {
     extensions: [
-      directiveToMarkdown(directivePatterns),
+      sitepinsShortcodesToMarkdown(directivePatterns),
       mdxJsxToMarkdown(),
       gfmToMarkdown(),
     ],
